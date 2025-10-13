@@ -781,46 +781,68 @@
     <script src="js/export.js"></script>
     <script src="js/app.js"></script>
 
-    <!-- Script de Correções Simplificado -->
+    <!-- Script de Correções Simplificado - VERSÃO DEFINITIVA -->
     <script>
-        // Correção para data atual no formulário de carregamento
+        // Correção definitiva para data - FUSO HORÁRIO BRASÍLIA
         document.addEventListener('DOMContentLoaded', function() {
-            // Definir data atual no campo de data - CORREÇÃO DO FUSO HORÁRIO
+            console.log('🚀 Inicializando correções de data...');
+            
+            // Função definitiva para obter data de Brasília
+            function obterDataBrasilia() {
+                const agora = new Date();
+                // Método mais confiável: usar toLocaleString com timezone
+                const dataBrasilia = new Date(agora.toLocaleString("en-US", {timeZone: "America/Sao_Paulo"}));
+                return dataBrasilia;
+            }
+
+            // Função para formatar como YYYY-MM-DD
+            function formatarDataInput(data) {
+                const ano = data.getFullYear();
+                const mes = String(data.getMonth() + 1).padStart(2, '0');
+                const dia = String(data.getDate()).padStart(2, '0');
+                return `${ano}-${mes}-${dia}`;
+            }
+
+            // Definir data atual no campo de data
             const dataInput = document.getElementById('data');
             if (dataInput) {
-                const hoje = new Date();
-                // Ajustar para o fuso horário local
-                const offset = hoje.getTimezoneOffset();
-                const localDate = new Date(hoje.getTime() - (offset * 60 * 1000));
-                const dataLocal = localDate.toISOString().split('T')[0];
-                dataInput.value = dataLocal;
+                const dataBrasilia = obterDataBrasilia();
+                const dataFormatada = formatarDataInput(dataBrasilia);
+                dataInput.value = dataFormatada;
+                console.log('✅ Data definida (Brasília):', dataFormatada, 
+                           'Data UTC:', new Date().toISOString(), 
+                           'Data Local:', new Date().toLocaleString());
+            }
+
+            // Monitorar mudanças no formulário para debug
+            if (dataInput) {
+                dataInput.addEventListener('change', function(e) {
+                    console.log('📅 Data alterada pelo usuário:', e.target.value);
+                });
             }
         });
 
-        // Função para inicializar data quando necessário
+        // Função auxiliar para inicializar data quando necessário
         function inicializarDataAtual() {
             const dataInput = document.getElementById('data');
             if (dataInput && !dataInput.value) {
-                const hoje = new Date();
-                const offset = hoje.getTimezoneOffset();
-                const localDate = new Date(hoje.getTime() - (offset * 60 * 1000));
-                const dataLocal = localDate.toISOString().split('T')[0];
-                dataInput.value = dataLocal;
+                const dataBrasilia = new Date(new Date().toLocaleString("en-US", {timeZone: "America/Sao_Paulo"}));
+                const ano = dataBrasilia.getFullYear();
+                const mes = String(dataBrasilia.getMonth() + 1).padStart(2, '0');
+                const dia = String(dataBrasilia.getDate()).padStart(2, '0');
+                dataInput.value = `${ano}-${mes}-${dia}`;
             }
         }
 
-        // Atualizar estatísticas da frota quando necessário
+        // Atualizar estatísticas da frota
         function atualizarEstatisticasFrota() {
             try {
                 const veiculos = JSON.parse(localStorage.getItem('veiculos')) || [];
-                
-                // Calcular estatísticas
                 const totalVeiculos = veiculos.length;
                 const veiculosDisponiveis = veiculos.filter(v => v.status === 'Disponível').length;
                 const emManutencao = veiculos.filter(v => v.status === 'Manutenção').length;
                 const taxaUtilizacao = totalVeiculos > 0 ? Math.round((veiculosDisponiveis / totalVeiculos) * 100) : 0;
 
-                // Atualizar elementos se existirem
                 const atualizarElemento = (id, valor) => {
                     const elemento = document.getElementById(id);
                     if (elemento) elemento.textContent = valor;
@@ -841,19 +863,17 @@
             }
         }
 
-        // Monitorar mudanças no localStorage para atualizar estatísticas
+        // Event listeners
         window.addEventListener('storage', function(e) {
             if (e.key === 'veiculos' || e.key === 'carregamentos') {
                 setTimeout(atualizarEstatisticasFrota, 100);
             }
         });
 
-        // Atualizar estatísticas quando a página for carregada
         document.addEventListener('DOMContentLoaded', function() {
             setTimeout(atualizarEstatisticasFrota, 500);
         });
 
-        // Reforçar a inicialização da data quando o formulário for exibido
         document.addEventListener('click', function(e) {
             if (e.target.closest('[data-section="carregamentos"]')) {
                 setTimeout(inicializarDataAtual, 100);

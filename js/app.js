@@ -458,12 +458,17 @@ class LoadControlApp {
     adicionarCarregamento() {
         const formData = this.obterDadosFormularioCarregamento();
         
+        // DEBUG: Verificar a data antes de salvar
+        console.log('🔍 DEBUG - Data do formulário:', formData.data);
+        console.log('🔍 DEBUG - Data atual Brasília:', this.obterDataBrasiliaFormatada());
+        
         if (!this.validarDadosCarregamento(formData)) {
             return;
         }
 
         try {
             const novoCarregamento = this.carregamentosManager.adicionar(formData);
+            console.log('✅ Carregamento salvo com data:', novoCarregamento.data);
             this.mostrarMensagem('✅ Carregamento adicionado com sucesso!', 'success');
             this.limparFormularioCarregamento();
             this.atualizarUICompleta();
@@ -523,15 +528,27 @@ class LoadControlApp {
         }
     }
 
+    // FUNÇÕES CORRIGIDAS PARA FUSO HORÁRIO
     definirDataAtual() {
         const dataInput = document.getElementById('data');
         if (dataInput) {
-            const hoje = new Date();
-            const offset = hoje.getTimezoneOffset();
-            const localDate = new Date(hoje.getTime() - (offset * 60 * 1000));
-            const dataLocal = localDate.toISOString().split('T')[0];
-            dataInput.value = dataLocal;
+            const dataCorrigida = this.obterDataBrasiliaFormatada();
+            dataInput.value = dataCorrigida;
+            console.log('📅 Data definida (Brasília):', dataCorrigida);
         }
+    }
+
+    // Função para obter data no fuso horário de Brasília formatada como YYYY-MM-DD
+    obterDataBrasiliaFormatada() {
+        return this.obterDataBrasilia().toISOString().split('T')[0];
+    }
+
+    // Função para obter objeto Date no fuso horário de Brasília
+    obterDataBrasilia() {
+        const agora = new Date();
+        // Método mais confiável: usar toLocaleString com timezone
+        const dataBrasilia = new Date(agora.toLocaleString("en-US", {timeZone: "America/Sao_Paulo"}));
+        return dataBrasilia;
     }
 
     atualizarTabelaCarregamentos() {
@@ -1100,9 +1117,11 @@ class LoadControlApp {
         this.atualizarMetricasRapidas();
     }
 
-    // NOVA FUNÇÃO: Métricas rápidas
+    // NOVA FUNÇÃO: Métricas rápidas - CORRIGIDA
     atualizarMetricasRapidas() {
-        const hoje = new Date().toISOString().split('T')[0];
+        const hoje = this.obterDataBrasiliaFormatada();
+        console.log('📊 Métricas rápidas - Data de hoje:', hoje);
+        
         const carregamentosHoje = this.carregamentosManager.obterTodos()
             .filter(c => c.data === hoje);
         
@@ -1137,6 +1156,11 @@ class LoadControlApp {
                 </div>
             `;
         }
+
+        // Atualizar também os elementos específicos do dashboard
+        this.atualizarElementoTexto('faturamentoHoje', `R$ ${this.formatarMoeda(valorHoje)}`);
+        this.atualizarElementoTexto('carregamentosHojeDashboard', carregamentosHoje.length.toString());
+        this.atualizarElementoTexto('carregamentosPendentes', pendentes.toString());
     }
 
     atualizarAtividadeRecente() {
@@ -1899,7 +1923,7 @@ class LoadControlApp {
 
     atualizarStatsCarregamentos() {
         const totais = this.carregamentosManager.calcularTotais();
-        const hoje = new Date().toISOString().split('T')[0];
+        const hoje = this.obterDataBrasiliaFormatada();
         const carregamentosHoje = this.carregamentosManager.obterTodos()
             .filter(c => c.data === hoje).length;
         
@@ -1959,7 +1983,21 @@ class LoadControlApp {
     }
 
     formatarData(data) {
-        return new Date(data).toLocaleDateString('pt-BR');
+        if (!data) return 'Data inválida';
+        
+        try {
+            // Se já estiver no formato DD/MM/YYYY, retorna como está
+            if (data.includes('/')) {
+                return data;
+            }
+            
+            // Converte de YYYY-MM-DD para DD/MM/YYYY
+            const [ano, mes, dia] = data.split('-');
+            return `${dia.padStart(2, '0')}/${mes.padStart(2, '0')}/${ano}`;
+        } catch (error) {
+            console.error('Erro ao formatar data:', error, data);
+            return data;
+        }
     }
 
     mostrarMensagem(mensagem, tipo = 'info') {
