@@ -1,89 +1,104 @@
-// Sistema de autenticação
+// Gerenciamento de autenticação
 class AuthManager {
     constructor() {
-        this.currentUser = null;
-        this.isAuthenticated = false;
+        this.isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
+        this.currentUser = JSON.parse(localStorage.getItem('currentUser')) || null;
         this.init();
     }
 
     init() {
-        // Verificar se há usuário logado no localStorage
-        const savedUser = localStorage.getItem('currentUser');
-        if (savedUser) {
-            this.currentUser = JSON.parse(savedUser);
-            this.isAuthenticated = true;
-            this.showApp();
-        } else {
-            this.showAuthModal();
-        }
-
         this.bindEvents();
+        this.updateUI();
     }
 
     bindEvents() {
-        // Formulário de login
-        document.getElementById('loginForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            this.login();
-        });
+        const loginForm = document.getElementById('loginForm');
+        if (loginForm) {
+            loginForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.login();
+            });
+        }
 
-        // Botão de logout
-        document.getElementById('logoutBtn').addEventListener('click', () => {
-            this.logout();
-        });
+        const logoutBtn = document.getElementById('logoutBtn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', () => {
+                this.logout();
+            });
+        }
     }
 
     login() {
         const username = document.getElementById('username').value;
         const password = document.getElementById('password').value;
 
-        // Validação - usuário: admin, senha: 123456
-        if (username === 'Paulojesus' && password === '050615') {
-            this.currentUser = {
-                username: username,
-                name: 'Administrador',
-                role: 'Gestor de Frota'
-            };
+        // Credenciais padrão (em produção, isso deve ser substituído por autenticação segura)
+        const validCredentials = [
+            { username: 'admin', password: 'admin123', name: 'Administrador' },
+            { username: 'PauloJesus', password: '050615', name: 'Paulo Jesus' }
+        ];
+
+        const user = validCredentials.find(u => 
+            u.username === username && u.password === password
+        );
+
+        if (user) {
             this.isAuthenticated = true;
-            
-            // Salvar no localStorage
+            this.currentUser = {
+                name: user.name,
+                username: user.username,
+                role: user.name === 'Administrador' ? 'Administrador' : 'Usuário'
+            };
+
+            localStorage.setItem('isAuthenticated', 'true');
             localStorage.setItem('currentUser', JSON.stringify(this.currentUser));
+
+            this.mostrarMensagem(`Bem-vindo, ${user.name}!`, 'success');
+            this.updateUI();
             
-            this.showApp();
-            this.showMessage('Login realizado com sucesso!', 'success');
+            // Inicializar aplicação principal
+            if (window.app) {
+                window.app.init();
+            }
         } else {
-            this.showMessage('Usuário ou senha incorretos!', 'error');
+            this.mostrarMensagem('Usuário ou senha inválidos!', 'error');
         }
     }
 
     logout() {
-        this.currentUser = null;
         this.isAuthenticated = false;
+        this.currentUser = null;
+        
+        localStorage.removeItem('isAuthenticated');
         localStorage.removeItem('currentUser');
-        this.showAuthModal();
-        this.showMessage('Logout realizado com sucesso!', 'info');
+
+        this.mostrarMensagem('Logout realizado com sucesso!', 'info');
+        this.updateUI();
     }
 
-    showAuthModal() {
-        document.getElementById('authModal').classList.add('active');
-        document.querySelector('.app-container').style.display = 'none';
-    }
+    updateUI() {
+        const authModal = document.getElementById('authModal');
+        const appContainer = document.querySelector('.app-container');
+        const userAvatar = document.getElementById('userAvatar');
+        const userName = document.getElementById('userName');
 
-    showApp() {
-        document.getElementById('authModal').classList.remove('active');
-        document.querySelector('.app-container').style.display = 'flex';
-        
-        // Atualizar informações do usuário
-        document.getElementById('userName').textContent = this.currentUser.name;
-        document.getElementById('userAvatar').textContent = this.currentUser.name.charAt(0);
-        
-        // Inicializar a aplicação principal
-        if (window.app) {
-            window.app.init();
+        if (this.isAuthenticated) {
+            if (authModal) authModal.classList.remove('active');
+            if (appContainer) appContainer.style.display = 'flex';
+            
+            if (userAvatar && this.currentUser) {
+                userAvatar.textContent = this.currentUser.name.charAt(0);
+            }
+            if (userName && this.currentUser) {
+                userName.textContent = this.currentUser.name;
+            }
+        } else {
+            if (authModal) authModal.classList.add('active');
+            if (appContainer) appContainer.style.display = 'none';
         }
     }
 
-    showMessage(mensagem, tipo = 'info') {
+    mostrarMensagem(mensagem, tipo = 'info') {
         // Criar elemento de mensagem
         const mensagemEl = document.createElement('div');
         mensagemEl.className = `message message-${tipo}`;
@@ -115,6 +130,19 @@ class AuthManager {
                 }
             }, 300);
         }, 3000);
+    }
+
+    // Verificar permissões
+    temPermissao(permissao) {
+        if (!this.currentUser) return false;
+        
+        const permissoes = {
+            'Administrador': ['tudo'],
+            'Usuário': ['visualizar', 'editar_limite']
+        };
+
+        return permissoes[this.currentUser.role]?.includes('tudo') || 
+               permissoes[this.currentUser.role]?.includes(permissao);
     }
 }
 

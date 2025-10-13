@@ -181,6 +181,44 @@ class CarregamentosManager {
 
         return estatisticas.sort((a, b) => b.totalValor - a.totalValor);
     }
+
+    // NOVO: Buscar carregamentos por número
+    buscarPorNumero(numero) {
+        return this.carregamentos.filter(c => 
+            c.numeroCarregamento.toLowerCase().includes(numero.toLowerCase())
+        );
+    }
+
+    // NOVO: Obter estatísticas rápidas do dia
+    obterEstatisticasHoje() {
+        const hoje = new Date().toISOString().split('T')[0];
+        const carregamentosHoje = this.carregamentos.filter(c => c.data === hoje);
+        
+        return {
+            total: carregamentosHoje.length,
+            valorTotal: carregamentosHoje.reduce((sum, c) => sum + c.valor, 0),
+            pendentes: carregamentosHoje.filter(c => c.status === 'Pendente').length
+        };
+    }
+
+    // NOVO: Sugerir próximo número de carregamento
+    sugerirProximoNumero() {
+        const hoje = new Date().toISOString().split('T')[0];
+        const carregamentosHoje = this.carregamentos.filter(c => c.data === hoje);
+        return carregamentosHoje.length + 1;
+    }
+
+    // NOVO: Obter rotas mais frequentes
+    obterRotasFrequentes() {
+        const rotasCount = {};
+        this.carregamentos.forEach(c => {
+            rotasCount[c.rota] = (rotasCount[c.rota] || 0) + 1;
+        });
+        
+        return Object.keys(rotasCount)
+            .sort((a, b) => rotasCount[b] - rotasCount[a])
+            .slice(0, 5);
+    }
 }
 
 // Instância global do gerenciador

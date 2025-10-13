@@ -131,6 +131,38 @@ class VeiculosManager {
         return this.veiculos.filter(v => v.status === status);
     }
 
+    // NOVO: Obter veículos por tipo
+    obterPorTipo(tipo) {
+        return this.veiculos.filter(v => v.tipo === tipo);
+    }
+
+    // NOVO: Obter estatísticas da frota
+    obterEstatisticasFrota() {
+        const total = this.veiculos.length;
+        const disponiveis = this.obterDisponiveis().length;
+        const emManutencao = this.obterPorStatus('Manutenção').length;
+        const taxaUtilizacao = total > 0 ? Math.round((disponiveis / total) * 100) : 0;
+
+        return {
+            total,
+            disponiveis,
+            emManutencao,
+            taxaUtilizacao
+        };
+    }
+
+    // NOVO: Buscar veículos por termo
+    buscarVeiculos(termo) {
+        termo = termo.toLowerCase();
+        return this.veiculos.filter(v => 
+            v.placa.toLowerCase().includes(termo) ||
+            v.modelo.toLowerCase().includes(termo) ||
+            v.marca.toLowerCase().includes(termo) ||
+            v.tipo.toLowerCase().includes(termo) ||
+            v.status.toLowerCase().includes(termo)
+        );
+    }
+
     // Formatar placa
     formatarPlaca(placa) {
         return placa.replace(/([A-Za-z]{3})(\d{4})/, '$1-$2');

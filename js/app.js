@@ -23,6 +23,7 @@ class LoadControlApp {
         this.carregarDadosIniciais();
         this.atualizarUICompleta();
         this.mudarSecao('dashboard');
+        this.configurarAtalhosTeclado(); // NOVO: Configurar atalhos
     }
 
     // Vincular eventos
@@ -200,11 +201,177 @@ class LoadControlApp {
             });
         }
 
+        // NOVO: Eventos para sugestões automáticas
+        const rotaInput = document.getElementById('rota');
+        if (rotaInput) {
+            rotaInput.addEventListener('focus', () => {
+                this.preencherDadosFrequentes();
+            });
+        }
+
+        const numeroInput = document.getElementById('numeroCarregamento');
+        if (numeroInput) {
+            numeroInput.addEventListener('focus', () => {
+                this.preencherDadosFrequentes();
+            });
+        }
+
         // Definir data atual como padrão
         this.definirDataAtual();
     }
 
-    // NOVA FUNÇÃO: Limpar filtros dos relatórios
+    // NOVA FUNÇÃO: Configurar atalhos de teclado
+    configurarAtalhosTeclado() {
+        document.addEventListener('keydown', (e) => {
+            // Ctrl + N - Novo carregamento
+            if (e.ctrlKey && e.key === 'n') {
+                e.preventDefault();
+                this.mudarSecao('carregamentos');
+            }
+            
+            // Ctrl + F - Buscar
+            if (e.ctrlKey && e.key === 'f') {
+                e.preventDefault();
+                const searchInput = document.querySelector('.search-input');
+                if (searchInput) searchInput.focus();
+            }
+            
+            // Ctrl + E - Exportar
+            if (e.ctrlKey && e.key === 'e') {
+                e.preventDefault();
+                this.exportManager.exportarParaExcel();
+            }
+
+            // Ctrl + B - Busca rápida por carregamento
+            if (e.ctrlKey && e.key === 'b') {
+                e.preventDefault();
+                this.buscarCarregamentoRapido();
+            }
+        });
+    }
+
+    // NOVA FUNÇÃO: Busca rápida por número de carregamento
+    buscarCarregamentoRapido() {
+        const numero = prompt('🔍 Digite o número do carregamento:');
+        if (numero) {
+            const resultados = this.carregamentosManager.buscarPorNumero(numero);
+            if (resultados.length > 0) {
+                this.mostrarResultadosBuscaRapida(resultados, numero);
+            } else {
+                this.mostrarMensagem('❌ Nenhum carregamento encontrado!', 'warning');
+            }
+        }
+    }
+
+    // NOVA FUNÇÃO: Mostrar resultados de busca rápida
+    mostrarResultadosBuscaRapida(resultados, termo) {
+        let html = `
+            <div class="search-summary">
+                <h3>🔍 Resultados para: "${termo}"</h3>
+                <p>Encontrados ${resultados.length} carregamento(s)</p>
+            </div>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Motorista</th>
+                            <th>Veículo</th>
+                            <th>Data</th>
+                            <th>Rota</th>
+                            <th>Nº Carga</th>
+                            <th>Valor</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+
+        resultados.forEach(c => {
+            html += `
+                <tr>
+                    <td>${c.motoristaNome}</td>
+                    <td>${c.veiculoPlaca}</td>
+                    <td>${this.formatarData(c.data)}</td>
+                    <td>${c.rota}</td>
+                    <td>${c.numeroCarregamento}</td>
+                    <td>R$ ${this.formatarMoeda(c.valor)}</td>
+                    <td>
+                        <span class="status-badge status-${c.status.toLowerCase().replace(' ', '-')}">
+                            ${c.status}
+                        </span>
+                    </td>
+                </tr>
+            `;
+        });
+
+        html += `</tbody></table>`;
+
+        // Criar modal para mostrar resultados
+        const modal = document.createElement('div');
+        modal.className = 'modal active';
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width: 900px;">
+                <div class="modal-header">
+                    <h3>🔍 Busca Rápida</h3>
+                    <button class="btn-close" onclick="this.closest('.modal').remove()">×</button>
+                </div>
+                <div class="modal-body">
+                    ${html}
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-primary" onclick="this.closest('.modal').remove()">Fechar</button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+    }
+
+    // NOVA FUNÇÃO: Preencher automaticamente dados frequentes
+    preencherDadosFrequentes() {
+        const rotaInput = document.getElementById('rota');
+        const numeroInput = document.getElementById('numeroCarregamento');
+        
+        if (rotaInput && !rotaInput.value) {
+            // Sugerir rota mais comum
+            const rotasFrequentes = this.carregamentosManager.obterRotasFrequentes();
+            if (rotasFrequentes.length > 0) {
+                rotaInput.placeholder = `Ex: ${rotasFrequentes[0]}`;
+                // Criar datalist para sugestões
+                if (!document.getElementById('rotasSugeridas')) {
+                    const datalist = document.createElement('datalist');
+                    datalist.id = 'rotasSugeridas';
+                    rotasFrequentes.forEach(rota => {
+                        const option = document.createElement('option');
+                        option.value = rota;
+                        datalist.appendChild(option);
+                    });
+                    document.body.appendChild(datalist);
+                    rotaInput.setAttribute('list', 'rotasSugeridas');
+                }
+            }
+        }
+        
+        if (numeroInput && !numeroInput.value) {
+            // Sugerir próximo número
+            const proximoNumero = this.carregamentosManager.sugerirProximoNumero();
+            numeroInput.placeholder = `Próximo: ${proximoNumero}`;
+        }
+    }
+
+    // NOVA FUNÇÃO: Obter rotas mais frequentes
+    obterRotasFrequentes() {
+        const rotasCount = {};
+        this.carregamentosManager.obterTodos().forEach(c => {
+            rotasCount[c.rota] = (rotasCount[c.rota] || 0) + 1;
+        });
+        
+        return Object.keys(rotasCount)
+            .sort((a, b) => rotasCount[b] - rotasCount[a])
+            .slice(0, 5);
+    }
+
+    // Limpar filtros dos relatórios
     limparFiltrosRelatorios() {
         console.log('🧹 Limpando filtros dos relatórios...');
         
@@ -225,7 +392,7 @@ class LoadControlApp {
         this.mostrarMensagem('✅ Filtros limpos com sucesso!', 'success');
     }
 
-    // NOVA FUNÇÃO: Exportar relatório filtrado
+    // Exportar relatório filtrado
     exportarRelatorioFiltrado() {
         console.log('📤 Exportando relatório filtrado...');
         
@@ -361,6 +528,7 @@ class LoadControlApp {
                 case 'carregamentos':
                     this.atualizarStatsCarregamentos();
                     this.atualizarTabelaCarregamentos();
+                    this.preencherDadosFrequentes(); // NOVO: Preencher sugestões
                     break;
             }
         }, 350);
@@ -523,12 +691,13 @@ class LoadControlApp {
         if (form) {
             form.reset();
             this.definirDataAtual();
+            this.preencherDadosFrequentes(); // NOVO: Atualizar sugestões
             const rotaInput = document.getElementById('rota');
             if (rotaInput) rotaInput.focus();
         }
     }
 
-    // FUNÇÕES CORRIGIDAS PARA FUSO HORÁRIO
+    // Função principal corrigida para definir data atual
     definirDataAtual() {
         const dataInput = document.getElementById('data');
         if (dataInput) {
@@ -546,9 +715,12 @@ class LoadControlApp {
     // Função para obter objeto Date no fuso horário de Brasília
     obterDataBrasilia() {
         const agora = new Date();
-        // Método mais confiável: usar toLocaleString com timezone
-        const dataBrasilia = new Date(agora.toLocaleString("en-US", {timeZone: "America/Sao_Paulo"}));
-        return dataBrasilia;
+        // Brasília é UTC-3, mas vamos calcular baseado no offset real
+        const offsetLocal = agora.getTimezoneOffset(); // em minutos
+        const offsetBrasilia = 180; // UTC-3 = 180 minutos
+        const diferenca = offsetBrasilia + offsetLocal; // diferença em minutos
+        
+        return new Date(agora.getTime() + diferenca * 60000);
     }
 
     atualizarTabelaCarregamentos() {
@@ -1117,7 +1289,7 @@ class LoadControlApp {
         this.atualizarMetricasRapidas();
     }
 
-    // NOVA FUNÇÃO: Métricas rápidas - CORRIGIDA
+    // NOVA FUNÇÃO: Métricas rápidas
     atualizarMetricasRapidas() {
         const hoje = this.obterDataBrasiliaFormatada();
         console.log('📊 Métricas rápidas - Data de hoje:', hoje);
@@ -1982,21 +2154,39 @@ class LoadControlApp {
         }).format(valor);
     }
 
-    formatarData(data) {
-        if (!data) return 'Data inválida';
+    // Função para formatar data de YYYY-MM-DD para DD/MM/YYYY
+    formatarData(dataString) {
+        if (!dataString) return 'Data inválida';
         
         try {
             // Se já estiver no formato DD/MM/YYYY, retorna como está
-            if (data.includes('/')) {
-                return data;
+            if (dataString.includes('/')) {
+                return dataString;
             }
             
             // Converte de YYYY-MM-DD para DD/MM/YYYY
-            const [ano, mes, dia] = data.split('-');
+            const [ano, mes, dia] = dataString.split('-');
             return `${dia.padStart(2, '0')}/${mes.padStart(2, '0')}/${ano}`;
         } catch (error) {
-            console.error('Erro ao formatar data:', error, data);
-            return data;
+            console.error('Erro ao formatar data:', error, dataString);
+            return dataString;
+        }
+    }
+
+    // Função para converter data do formato DD/MM/YYYY para YYYY-MM-DD
+    converterParaFormatoInput(dataString) {
+        if (!dataString) return '';
+        
+        try {
+            if (dataString.includes('-')) {
+                return dataString; // Já está no formato correto
+            }
+            
+            const [dia, mes, ano] = dataString.split('/');
+            return `${ano}-${mes.padStart(2, '0')}-${dia.padStart(2, '0')}`;
+        } catch (error) {
+            console.error('Erro ao converter data:', error, dataString);
+            return dataString;
         }
     }
 

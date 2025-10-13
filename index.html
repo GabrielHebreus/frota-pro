@@ -84,6 +84,26 @@
                 </a>
             </nav>
 
+            <!-- NOVO: Seção de Atalhos -->
+            <div class="sidebar-shortcuts">
+                <div class="shortcut-item">
+                    <kbd>Ctrl</kbd> + <kbd>N</kbd>
+                    <span>Novo Carregamento</span>
+                </div>
+                <div class="shortcut-item">
+                    <kbd>Ctrl</kbd> + <kbd>F</kbd>
+                    <span>Buscar</span>
+                </div>
+                <div class="shortcut-item">
+                    <kbd>Ctrl</kbd> + <kbd>E</kbd>
+                    <span>Exportar</span>
+                </div>
+                <div class="shortcut-item">
+                    <kbd>Ctrl</kbd> + <kbd>B</kbd>
+                    <span>Buscar Carga</span>
+                </div>
+            </div>
+
             <div class="sidebar-footer">
                 <div class="user-profile">
                     <div class="user-avatar" id="userAvatar">AD</div>
@@ -112,6 +132,11 @@
                         <input type="text" placeholder="Buscar carregamentos, motoristas..." class="search-input">
                         <span class="search-icon">🔍</span>
                     </div>
+                    <!-- NOVO: Botão de busca rápida -->
+                    <button class="btn btn-secondary" onclick="app.buscarCarregamentoRapido()" title="Ctrl + B">
+                        <span class="btn-icon">🔍</span>
+                        Buscar Carga
+                    </button>
                     <button class="btn btn-primary btn-export" id="exportBtn">
                         <span class="btn-icon">📊</span>
                         Exportar Excel
@@ -292,14 +317,18 @@
                             </div>
                             <div class="form-group">
                                 <label for="rota">🛣️ Rota *</label>
-                                <input type="text" id="rota" placeholder="Ex: SP-RJ" required class="modern-input">
+                                <input type="text" id="rota" placeholder="Ex: SP-RJ" required class="modern-input" list="rotasSugeridas">
+                                <!-- NOVO: Datalist para sugestões de rotas -->
+                                <datalist id="rotasSugeridas">
+                                    <!-- Sugestões serão preenchidas via JavaScript -->
+                                </datalist>
                             </div>
                         </div>
 
                         <div class="form-row">
                             <div class="form-group">
                                 <label for="numeroCarregamento">🔢 Número do Carregamento *</label>
-                                <input type="text" id="numeroCarregamento" placeholder="Ex: 166784/145698" required
+                                <input type="text" id="numeroCarregamento" placeholder="Próximo: 1" required
                                     class="modern-input">
                             </div>
                             <div class="form-group">
@@ -820,6 +849,37 @@
                     console.log('📅 Data alterada pelo usuário:', e.target.value);
                 });
             }
+
+            // Preencher datalist de rotas sugeridas
+            function preencherRotasSugeridas() {
+                try {
+                    const carregamentos = JSON.parse(localStorage.getItem('carregamentos')) || [];
+                    const rotasCount = {};
+                    
+                    carregamentos.forEach(c => {
+                        rotasCount[c.rota] = (rotasCount[c.rota] || 0) + 1;
+                    });
+                    
+                    const rotasFrequentes = Object.keys(rotasCount)
+                        .sort((a, b) => rotasCount[b] - rotasCount[a])
+                        .slice(0, 5);
+                    
+                    const datalist = document.getElementById('rotasSugeridas');
+                    if (datalist) {
+                        datalist.innerHTML = '';
+                        rotasFrequentes.forEach(rota => {
+                            const option = document.createElement('option');
+                            option.value = rota;
+                            datalist.appendChild(option);
+                        });
+                    }
+                } catch (error) {
+                    console.error('Erro ao preencher rotas sugeridas:', error);
+                }
+            }
+
+            // Chamar quando o DOM estiver pronto
+            setTimeout(preencherRotasSugeridas, 1000);
         });
 
         // Função auxiliar para inicializar data quando necessário
@@ -879,6 +939,11 @@
                 setTimeout(inicializarDataAtual, 100);
             }
         });
+
+        // NOVO: Template de importação
+        function exportarTemplate() {
+            exportManager.exportarTemplate();
+        }
     </script>
 </body>
 
