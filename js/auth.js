@@ -38,7 +38,7 @@ class AuthManager {
         const password = document.getElementById('password').value;
 
         // Validação - usuário: admin, senha: 123456
-        if (username === 'admin' && password === '123456') {
+        if (username === 'Paulojesus' && password === '050615') {
             this.currentUser = {
                 username: username,
                 name: 'Administrador',
