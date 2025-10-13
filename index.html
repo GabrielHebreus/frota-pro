@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FrotaPro - Gestão de Frota</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+</head>
+
+<body>
+    <!-- Modal de Autenticação -->
+    <div id="authModal" class="modal active">
+        <div class="modal-content auth-modal">
+            <div class="modal-header">
+                <h3>🔐 Acesso ao Sistema</h3>
+            </div>
+            <div class="modal-body">
+                <div class="auth-container">
+                    <div class="auth-icon">🚛</div>
+                    <h2>FrotaPro</h2>
+                    <p class="auth-subtitle">Sistema de Gestão de Frota Logística</p>
+
+                    <form id="loginForm" class="auth-form">
+                        <div class="form-group">
+                            <label for="username">Usuário</label>
+                            <input type="text" id="username" placeholder="Digite seu usuário" required
+                                class="modern-input">
+                        </div>
+                        <div class="form-group">
+                            <label for="password">Senha</label>
+                            <input type="password" id="password" placeholder="Digite sua senha" required
+                                class="modern-input">
+                        </div>
+                        <button type="submit" class="btn btn-primary full-width">
+                            <span class="btn-icon">🔑</span>
+                            Entrar no Sistema
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="app-container" style="display: none;">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <div class="logo-icon">🚛</div>
+                    <div class="logo-text">
+                        <span class="logo-title">FrotaPro</span>
+                        <span class="logo-subtitle">Sua frota no caminho certo</span>
+                    </div>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-item active" data-section="dashboard">
+                    <span class="nav-icon">📊</span>
+                    <span class="nav-text">Dashboard</span>
+                </a>
+                <a href="#" class="nav-item" data-section="carregamentos">
+                    <span class="nav-icon">📦</span>
+                    <span class="nav-text">Carregamentos</span>
+                    <span class="nav-badge" id="carregamentosCount">0</span>
+                </a>
+                <a href="#" class="nav-item" data-section="motoristas">
+                    <span class="nav-icon">👥</span>
+                    <span class="nav-text">Motoristas</span>
+                    <span class="nav-badge" id="motoristasCount">0</span>
+                </a>
+                <a href="#" class="nav-item" data-section="veiculos">
+                    <span class="nav-icon">🚚</span>
+                    <span class="nav-text">Veículos</span>
+                    <span class="nav-badge" id="veiculosCount">0</span>
+                </a>
+                <a href="#" class="nav-item" data-section="relatorios">
+                    <span class="nav-icon">📈</span>
+                    <span class="nav-text">Relatórios</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-profile">
+                    <div class="user-avatar" id="userAvatar">AD</div>
+                    <div class="user-info">
+                        <span class="user-name" id="userName">Administrador</span>
+                        <span class="user-role">Gestor de Frota</span>
+                    </div>
+                </div>
+                <button class="btn btn-outline btn-sm full-width" id="logoutBtn" style="margin-top: 10px;">
+                    <span class="btn-icon">🚪</span>
+                    Sair
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="top-header">
+                <div class="header-left">
+                    <h1 class="page-title" id="pageTitle">Dashboard</h1>
+                    <p class="page-subtitle" id="pageSubtitle">Visão geral da operação logística</p>
+                </div>
+                <div class="header-actions">
+                    <div class="search-box">
+                        <input type="text" placeholder="Buscar carregamentos, motoristas..." class="search-input">
+                        <span class="search-icon">🔍</span>
+                    </div>
+                    <button class="btn btn-primary btn-export" id="exportBtn">
+                        <span class="btn-icon">📊</span>
+                        Exportar Excel
+                    </button>
+                </div>
+            </header>
+
+            <!-- Dashboard Section -->
+            <section id="dashboard-section" class="section active">
+                <!-- Stats Overview -->
+                <div class="stats-overview">
+                    <div class="stat-card large">
+                        <div class="stat-header">
+                            <h3>Faturamento Total</h3>
+                            <span class="stat-trend positive">+12%</span>
+                        </div>
+                        <div class="stat-value" id="dashboardTotalMensal">R$ 0,00</div>
+                        <div class="stat-progress">
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: 75%"></div>
+                            </div>
+                            <span class="progress-text">Performance da frota</span>
+                        </div>
+                    </div>
+
+                    <div class="stat-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon">📦</div>
+                            <div class="stat-content">
+                                <div class="stat-value" id="dashboardCarregamentos">0</div>
+                                <div class="stat-label">Carregamentos</div>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">👥</div>
+                            <div class="stat-content">
+                                <div class="stat-value" id="dashboardMotoristas">0</div>
+                                <div class="stat-label">Motoristas Ativos</div>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">📅</div>
+                            <div class="stat-content">
+                                <div class="stat-value" id="dashboardDias">0</div>
+                                <div class="stat-label">Dias Produtivos</div>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">🚚</div>
+                            <div class="stat-content">
+                                <div class="stat-value" id="dashboardVeiculos">0</div>
+                                <div class="stat-label">Veículos</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Métricas Rápidas -->
+                <div class="metricas-rapidas" id="metricasRapidas">
+                    <div class="metric-card">
+                        <div class="metric-icon">💰</div>
+                        <div class="metric-info">
+                            <div class="metric-value" id="faturamentoHoje">R$ 0,00</div>
+                            <div class="metric-label">Faturamento Hoje</div>
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-icon">📦</div>
+                        <div class="metric-info">
+                            <div class="metric-value" id="carregamentosHojeDashboard">0</div>
+                            <div class="metric-label">Carregamentos Hoje</div>
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-icon">⏳</div>
+                        <div class="metric-info">
+                            <div class="metric-value" id="carregamentosPendentes">0</div>
+                            <div class="metric-label">Pendentes</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Main Content Grid -->
+                <div class="content-grid">
+                    <!-- Recent Activity -->
+                    <div class="content-card">
+                        <div class="card-header">
+                            <h3>📦 Carregamentos Recentes</h3>
+                            <button class="btn-link" onclick="app.mudarSecao('carregamentos')">Ver todos</button>
+                        </div>
+                        <div class="activity-list" id="recentActivity">
+                            <!-- Atividade recente será carregada via JS -->
+                        </div>
+                    </div>
+
+                    <!-- Gráfico de Comparação -->
+                    <div class="content-card">
+                        <div class="card-header">
+                            <h3>📈 Comparação por Motorista</h3>
+                            <button class="btn-link" onclick="app.mudarSecao('relatorios')">Ver relatório</button>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="comparisonChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Motoristas com Maiores Valores -->
+                    <div class="content-card full-width">
+                        <div class="card-header">
+                            <h3>⭐ Motoristas com Maiores Valores</h3>
+                            <button class="btn-link" onclick="app.mudarSecao('motoristas')">Ver todos</button>
+                        </div>
+                        <div class="drivers-grid" id="featuredDrivers">
+                            <!-- Motoristas destaque será carregado via JS -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Seção Carregamentos -->
+            <section id="carregamentos-section" class="section">
+                <div class="section-header">
+                    <div class="header-content">
+                        <h1>📦 Gestão de Carregamentos</h1>
+                        <p>Controle completo dos carregamentos da frota</p>
+                    </div>
+                    <button class="btn btn-primary btn-lg" id="novoCarregamentoBtn">
+                        <span class="btn-icon">➕</span>
+                        Novo Carregamento
+                    </button>
+                </div>
+
+                <!-- Quick Stats -->
+                <div class="quick-stats">
+                    <div class="quick-stat">
+                        <span class="stat-number" id="totalCarregamentos">0</span>
+                        <span class="stat-label">Total</span>
+                    </div>
+                    <div class="quick-stat">
+                        <span class="stat-number" id="carregamentosHoje">0</span>
+                        <span class="stat-label">Hoje</span>
+                    </div>
+                    <div class="quick-stat">
+                        <span class="stat-number" id="carregamentosSemana">0</span>
+                        <span class="stat-label">Esta Semana</span>
+                    </div>
+                    <div class="quick-stat">
+                        <span class="stat-number" id="valorTotal">R$ 0,00</span>
+                        <span class="stat-label">Valor Total</span>
+                    </div>
+                </div>
+
+                <!-- Form Section -->
+                <div class="content-card" id="carregamentoFormCard">
+                    <div class="card-header">
+                        <h3>📋 Registrar Novo Carregamento</h3>
+                    </div>
+                    <form id="carregamentoForm" class="form modern-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="motorista">👤 Motorista *</label>
+                                <select id="motorista" required class="modern-select">
+                                    <option value="">Selecione um motorista</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="veiculo">🚚 Veículo *</label>
+                                <select id="veiculo" required class="modern-select">
+                                    <option value="">Selecione um veículo</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="data">📅 Data *</label>
+                                <input type="date" id="data" required class="modern-input">
+                            </div>
+                            <div class="form-group">
+                                <label for="rota">🛣️ Rota *</label>
+                                <input type="text" id="rota" placeholder="Ex: SP-RJ" required class="modern-input">
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="numeroCarregamento">🔢 Número do Carregamento *</label>
+                                <input type="text" id="numeroCarregamento" placeholder="Ex: 166784/145698" required
+                                    class="modern-input">
+                            </div>
+                            <div class="form-group">
+                                <label for="valor">💰 Valor (R$) *</label>
+                                <input type="number" id="valor" step="0.01" placeholder="0,00" required
+                                    class="modern-input">
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="status">📊 Status</label>
+                                <select id="status" class="modern-select">
+                                    <option value="Pendente">Pendente</option>
+                                    <option value="Em Trânsito">Em Trânsito</option>
+                                    <option value="Entregue">Entregue</option>
+                                    <option value="Cancelado">Cancelado</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <span class="btn-icon">💾</span>
+                                Salvar Carregamento
+                            </button>
+                            <button type="button" class="btn btn-outline" id="limparBtn">
+                                <span class="btn-icon">🗑️</span>
+                                Limpar
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Table Section -->
+                <div class="content-card">
+                    <div class="card-header">
+                        <h3>📊 Todos os Carregamentos</h3>
+                        <div class="card-actions">
+                            <button class="btn btn-danger" id="limparTodosBtn">
+                                <span class="btn-icon">🗑️</span>
+                                Limpar Todos
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="table-container modern-table">
+                        <table id="carregamentosTable" class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Motorista</th>
+                                    <th>Veículo</th>
+                                    <th>Data</th>
+                                    <th>Rota</th>
+                                    <th>Nº Carregamento</th>
+                                    <th>Valor</th>
+                                    <th>Status</th>
+                                    <th width="120">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableBody">
+                                <!-- Dados serão inseridos via JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="table-footer">
+                        <div class="total-registros">
+                            📋 Total de registros: <strong id="totalRegistros">0</strong>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Seção Motoristas -->
+            <section id="motoristas-section" class="section">
+                <div class="section-header">
+                    <div class="header-content">
+                        <h1>👥 Gestão de Motoristas</h1>
+                        <p>Cadastro e controle da equipe de motoristas</p>
+                    </div>
+                </div>
+
+                <!-- Motoristas Stats -->
+                <div class="quick-stats">
+                    <div class="quick-stat">
+                        <span class="stat-number" id="totalMotoristas">0</span>
+                        <span class="stat-label">Total</span>
+                    </div>
+                    <div class="quick-stat">
+                        <span class="stat-number" id="motoristasAtivos">0</span>
+                        <span class="stat-label">Ativos</span>
+                    </div>
+                    <div class="quick-stat">
+                        <span class="stat-number" id="motoristasInativos">0</span>
+                        <span class="stat-label">Inativos</span>
+                    </div>
+                    <div class="quick-stat">
+                        <span class="stat-number" id="vtTotalMotoristas">R$ 0,00</span>
+                        <span class="stat-label">VT Total</span>
+                    </div>
+                </div>
+
+                <!-- Formulário de Motorista -->
+                <div class="content-card">
+                    <div class="card-header">
+                        <h3>👤 Cadastrar Novo Motorista</h3>
+                    </div>
+                    <form id="motoristaForm" class="form modern-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="nomeMotorista">👤 Nome Completo *</label>
+                                <input type="text" id="nomeMotorista" placeholder="Digite o nome do motorista" required
+                                    class="modern-input">
+                            </div>
+                            <div class="form-group">
+                                <label for="cpf">🔐 CPF *</label>
+                                <input type="text" id="cpf" placeholder="000.000.000-00" required class="modern-input">
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="telefone">📱 Telefone</label>
+                                <input type="tel" id="telefone" placeholder="(00) 00000-0000" class="modern-input">
+                            </div>
+                            <div class="form-group">
+                                <label for="cnh">🚦 CNH *</label>
+                                <input type="text" id="cnh" placeholder="Número da CNH" required class="modern-input">
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="categoriaCnh">📄 Categoria CNH</label>
+                                <select id="categoriaCnh" class="modern-select">
+                                    <option value="A">A</option>
+                                    <option value="B">B</option>
+                                    <option value="C">C</option>
+                                    <option value="D">D</option>
+                                    <option value="E">E</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="vtDiario">🚌 VT Diário (R$) *</label>
+                                <input type="number" id="vtDiario" step="0.01" value="9.00" required
+                                    class="modern-input">
+                            </div>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary btn-lg" id="submitMotoristaBtn">
+                                <span class="btn-icon">👥</span>
+                                Cadastrar Motorista
+                            </button>
+                            <button type="button" class="btn btn-outline" id="limparMotoristaBtn">
+                                <span class="btn-icon">🗑️</span>
+                                Limpar
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Tabela de Motoristas -->
+                <div class="content-card">
+                    <div class="card-header">
+                        <h3>📋 Motoristas Cadastrados</h3>
+                    </div>
+
+                    <div class="table-container modern-table">
+                        <table id="motoristasTable" class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Nome</th>
+                                    <th>CPF</th>
+                                    <th>Telefone</th>
+                                    <th>VT Diário</th>
+                                    <th>Status</th>
+                                    <th width="160">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="motoristasBody">
+                                <!-- Dados serão inseridos via JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Seção Veículos -->
+            <section id="veiculos-section" class="section">
+                <div class="section-header">
+                    <div class="header-content">
+                        <h1>🚚 Gestão de Veículos</h1>
+                        <p>Controle completo da frota de veículos</p>
+                    </div>
+                    <button class="btn btn-primary btn-lg" id="novoVeiculoBtn">
+                        <span class="btn-icon">➕</span>
+                        Novo Veículo
+                    </button>
+                </div>
+
+                <!-- Veículos Stats -->
+                <div class="quick-stats">
+                    <div class="quick-stat">
+                        <span class="stat-number" id="totalVeiculos">0</span>
+                        <span class="stat-label">Total</span>
+                    </div>
+                    <div class="quick-stat">
+                        <span class="stat-number" id="veiculosAtivos">0</span>
+                        <span class="stat-label">Ativos</span>
+                    </div>
+                    <div class="quick-stat">
+                        <span class="stat-number" id="veiculosManutencao">0</span>
+                        <span class="stat-label">Manutenção</span>
+                    </div>
+                    <div class="quick-stat">
+                        <span class="stat-number" id="veiculosDisponiveis">0</span>
+                        <span class="stat-label">Disponíveis</span>
+                    </div>
+                </div>
+
+                <!-- Formulário de Veículo -->
+                <div class="content-card">
+                    <div class="card-header">
+                        <h3>🚚 Cadastrar Novo Veículo</h3>
+                    </div>
+                    <form id="veiculoForm" class="form modern-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="placa">🔢 Placa *</label>
+                                <input type="text" id="placa" placeholder="ABC-1D23" required class="modern-input"
+                                    style="text-transform: uppercase">
+                            </div>
+                            <div class="form-group">
+                                <label for="modelo">🚙 Modelo *</label>
+                                <input type="text" id="modelo" placeholder="Modelo do veículo" required
+                                    class="modern-input">
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="marca">🏭 Marca *</label>
+                                <input type="text" id="marca" placeholder="Marca do veículo" required
+                                    class="modern-input">
+                            </div>
+                            <div class="form-group">
+                                <label for="ano">📅 Ano *</label>
+                                <input type="number" id="ano" placeholder="2024" required class="modern-input">
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="tipo">📦 Tipo de Veículo</label>
+                                <select id="tipo" class="modern-select">
+                                    <option value="Caminhão">Caminhão</option>
+                                    <option value="Carreta">Carreta</option>
+                                    <option value="VUC">VUC</option>
+                                    <option value="Bitrem">Bitrem</option>
+                                    <option value="Rodotrem">Rodotrem</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="statusVeiculo">📊 Status</label>
+                                <select id="statusVeiculo" class="modern-select">
+                                    <option value="Disponível">Disponível</option>
+                                    <option value="Manutenção">Manutenção</option>
+                                    <option value="Em Uso">Em Uso</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <span class="btn-icon">💾</span>
+                                Cadastrar Veículo
+                            </button>
+                            <button type="button" class="btn btn-outline" id="limparVeiculoBtn">
+                                <span class="btn-icon">🗑️</span>
+                                Limpar
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Lista de Veículos -->
+                <div class="content-card">
+                    <div class="card-header">
+                        <h3>📋 Frota de Veículos</h3>
+                    </div>
+
+                    <div class="table-container modern-table">
+                        <table id="veiculosTable" class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Placa</th>
+                                    <th>Modelo</th>
+                                    <th>Marca</th>
+                                    <th>Ano</th>
+                                    <th>Tipo</th>
+                                    <th>Status</th>
+                                    <th width="140">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="veiculosBody">
+                                <!-- Dados serão inseridos via JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Seção Relatórios Analíticos -->
+            <section id="relatorios-section" class="section">
+                <div class="container">
+                    <div class="section-header">
+                        <h2>📊 Relatórios Analíticos</h2>
+                        <p>Análise detalhada do desempenho da operação</p>
+                    </div>
+
+                    <!-- Filtros do Relatório -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>🔍 Filtros do Relatório</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="filtros-grid">
+                                <div class="filtro-group">
+                                    <label for="filtroMotorista">Motorista</label>
+                                    <select id="filtroMotorista" class="form-select">
+                                        <option value="">Todos os motoristas</option>
+                                    </select>
+                                </div>
+                                <div class="filtro-group">
+                                    <label for="filtroVeiculo">Veículo</label>
+                                    <select id="filtroVeiculo" class="form-select">
+                                        <option value="">Todos os veículos</option>
+                                    </select>
+                                </div>
+                                <div class="filtro-group">
+                                    <label for="filtroDataInicio">Data Início</label>
+                                    <input type="date" id="filtroDataInicio" class="form-input">
+                                </div>
+                                <div class="filtro-group">
+                                    <label for="filtroDataFim">Data Fim</label>
+                                    <input type="date" id="filtroDataFim" class="form-input">
+                                </div>
+                            </div>
+                            <div class="filtros-actions">
+                                <button id="aplicarFiltros" class="btn btn-primary">
+                                    ✅ Aplicar Filtros
+                                </button>
+                                <button id="limparFiltros" class="btn btn-secondary">
+                                    🗑️ Limpar Filtros
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Legenda Executiva -->
+                    <div class="metricas-rapidas" id="metricasRelatorios">
+                        <div class="metric-card">
+                            <div class="metric-icon">💰</div>
+                            <div class="metric-info">
+                                <div class="metric-value" id="relatorioFaturamento">R$ 0,00</div>
+                                <div class="metric-label">Faturamento Total</div>
+                            </div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-icon">📊</div>
+                            <div class="metric-info">
+                                <div class="metric-value" id="relatorioTicketMedio">R$ 0,00</div>
+                                <div class="metric-label">Ticket Médio</div>
+                            </div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-icon">📅</div>
+                            <div class="metric-info">
+                                <div class="metric-value" id="relatorioDiasTrabalhados">0</div>
+                                <div class="metric-label">Dias Trabalhados</div>
+                            </div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-icon">👥</div>
+                            <div class="metric-info">
+                                <div class="metric-value" id="relatorioMotoristasAtivos">0</div>
+                                <div class="metric-label">Motoristas Ativos</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Gráfico de Relatórios -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>📈 Análise de Desempenho</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container">
+                                <canvas id="relatorioChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tabela de Relatórios Detalhados -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>📋 Relatório Detalhado por Motorista</h3>
+                            <button id="exportRelatorioBtn" class="btn btn-success">
+                                📤 Exportar Relatório
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Motorista</th>
+                                            <th>Carregamentos</th>
+                                            <th>Faturamento</th>
+                                            <th>Dias Trabalhados</th>
+                                            <th>VT Diário</th>
+                                            <th>VT Total</th>
+                                            <th>Ticket Médio</th>
+                                            <th>Eficiência</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="relatorioBody">
+                                        <tr>
+                                            <td colspan="8" class="empty-state">
+                                                <div class="empty-icon">📊</div>
+                                                <h3>Nenhum dado para exibir</h3>
+                                                <p>Aplique os filtros para gerar o relatório.</p>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Resumo de Veículos -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>🚚 Estatísticas da Frota</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="stats-grid" id="estatisticasFrota">
+                                <div class="stat-item">
+                                    <div class="stat-value" id="totalVeiculosRelatorio">0</div>
+                                    <div class="stat-label">Total de Veículos</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-value" id="veiculosDisponiveisRelatorio">0</div>
+                                    <div class="stat-label">Veículos Disponíveis</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-value" id="veiculosManutencaoRelatorio">0</div>
+                                    <div class="stat-label">Em Manutenção</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-value" id="taxaUtilizacaoRelatorio">0%</div>
+                                    <div class="stat-label">Taxa de Utilização</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/auth.js"></script>
+    <script src="js/motoristas.js"></script>
+    <script src="js/veiculos.js"></script>
+    <script src="js/carregamentos.js"></script>
+    <script src="js/export.js"></script>
+    <script src="js/app.js"></script>
+
+    <!-- Script de Correções Simplificado -->
+    <script>
+        // Correção para data atual no formulário de carregamento
+        document.addEventListener('DOMContentLoaded', function() {
+            // Definir data atual no campo de data - CORREÇÃO DO FUSO HORÁRIO
+            const dataInput = document.getElementById('data');
+            if (dataInput) {
+                const hoje = new Date();
+                // Ajustar para o fuso horário local
+                const offset = hoje.getTimezoneOffset();
+                const localDate = new Date(hoje.getTime() - (offset * 60 * 1000));
+                const dataLocal = localDate.toISOString().split('T')[0];
+                dataInput.value = dataLocal;
+            }
+        });
+
+        // Função para inicializar data quando necessário
+        function inicializarDataAtual() {
+            const dataInput = document.getElementById('data');
+            if (dataInput && !dataInput.value) {
+                const hoje = new Date();
+                const offset = hoje.getTimezoneOffset();
+                const localDate = new Date(hoje.getTime() - (offset * 60 * 1000));
+                const dataLocal = localDate.toISOString().split('T')[0];
+                dataInput.value = dataLocal;
+            }
+        }
+
+        // Atualizar estatísticas da frota quando necessário
+        function atualizarEstatisticasFrota() {
+            try {
+                const veiculos = JSON.parse(localStorage.getItem('veiculos')) || [];
+                
+                // Calcular estatísticas
+                const totalVeiculos = veiculos.length;
+                const veiculosDisponiveis = veiculos.filter(v => v.status === 'Disponível').length;
+                const emManutencao = veiculos.filter(v => v.status === 'Manutenção').length;
+                const taxaUtilizacao = totalVeiculos > 0 ? Math.round((veiculosDisponiveis / totalVeiculos) * 100) : 0;
+
+                // Atualizar elementos se existirem
+                const atualizarElemento = (id, valor) => {
+                    const elemento = document.getElementById(id);
+                    if (elemento) elemento.textContent = valor;
+                };
+
+                atualizarElemento('totalVeiculosRelatorio', totalVeiculos);
+                atualizarElemento('veiculosDisponiveisRelatorio', veiculosDisponiveis);
+                atualizarElemento('veiculosManutencaoRelatorio', emManutencao);
+                atualizarElemento('taxaUtilizacaoRelatorio', taxaUtilizacao + '%');
+                atualizarElemento('totalVeiculos', totalVeiculos);
+                atualizarElemento('veiculosAtivos', veiculosDisponiveis);
+                atualizarElemento('veiculosManutencao', emManutencao);
+                atualizarElemento('veiculosDisponiveis', veiculosDisponiveis);
+                atualizarElemento('dashboardVeiculos', totalVeiculos);
+
+            } catch (error) {
+                console.error('Erro ao atualizar estatísticas da frota:', error);
+            }
+        }
+
+        // Monitorar mudanças no localStorage para atualizar estatísticas
+        window.addEventListener('storage', function(e) {
+            if (e.key === 'veiculos' || e.key === 'carregamentos') {
+                setTimeout(atualizarEstatisticasFrota, 100);
+            }
+        });
+
+        // Atualizar estatísticas quando a página for carregada
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(atualizarEstatisticasFrota, 500);
+        });
+
+        // Reforçar a inicialização da data quando o formulário for exibido
+        document.addEventListener('click', function(e) {
+            if (e.target.closest('[data-section="carregamentos"]')) {
+                setTimeout(inicializarDataAtual, 100);
+            }
+        });
+    </script>
+</body>
+
+</html>
