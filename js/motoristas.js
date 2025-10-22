@@ -10,7 +10,7 @@ class MotoristasManager {
         if (dados) {
             return JSON.parse(dados);
         } else {
-            // Dados de exemplo
+            // Dados de exemplo com veículos associados
             const motoristasExemplo = [
                 {
                     id: '1',
@@ -19,6 +19,7 @@ class MotoristasManager {
                     telefone: '11999999999',
                     cnh: '12345678901',
                     categoriaCnh: 'C',
+                    veiculoAssociadoId: '1', // NOVO: ID do veículo associado
                     vtDiario: 9.00,
                     ativo: true,
                     timestamp: new Date().toISOString()
@@ -30,6 +31,7 @@ class MotoristasManager {
                     telefone: '11888888888',
                     cnh: '98765432109',
                     categoriaCnh: 'D',
+                    veiculoAssociadoId: '2', // NOVO: ID do veículo associado
                     vtDiario: 9.00,
                     ativo: true,
                     timestamp: new Date().toISOString()
@@ -52,6 +54,11 @@ class MotoristasManager {
             throw new Error('CPF já cadastrado!');
         }
 
+        // Verificar se CNH já existe
+        if (this.motoristas.some(m => m.cnh === motorista.cnh)) {
+            throw new Error('CNH já cadastrada!');
+        }
+
         const novoMotorista = {
             id: Date.now().toString(),
             nome: motorista.nome,
@@ -59,6 +66,7 @@ class MotoristasManager {
             telefone: motorista.telefone || '',
             cnh: motorista.cnh,
             categoriaCnh: motorista.categoriaCnh,
+            veiculoAssociadoId: motorista.veiculoAssociadoId, // NOVO: Veículo associado
             vtDiario: parseFloat(motorista.vtDiario) || 9.00,
             ativo: true,
             timestamp: new Date().toISOString()
@@ -100,9 +108,19 @@ class MotoristasManager {
                 throw new Error('CPF já cadastrado em outro motorista!');
             }
 
+            // Verificar se outro motorista já tem esta CNH
+            const cnhExistente = this.motoristas.some(m => 
+                m.id !== id && m.cnh === dadosAtualizados.cnh
+            );
+            
+            if (cnhExistente) {
+                throw new Error('CNH já cadastrada em outro motorista!');
+            }
+
             this.motoristas[index] = {
                 ...this.motoristas[index],
                 ...dadosAtualizados,
+                veiculoAssociadoId: dadosAtualizados.veiculoAssociadoId, // NOVO: Atualizar veículo associado
                 vtDiario: parseFloat(dadosAtualizados.vtDiario) || 9.00
             };
             this.salvarNoLocalStorage();
@@ -124,47 +142,6 @@ class MotoristasManager {
     // Obter todos os motoristas
     obterTodos() {
         return this.motoristas.sort((a, b) => a.nome.localeCompare(b.nome));
-    }
-
-    // NOVO: Obter motoristas por categoria CNH
-    obterPorCategoria(categoria) {
-        return this.motoristas.filter(m => m.categoriaCnh === categoria);
-    }
-
-    // NOVO: Buscar motoristas por termo
-    buscarMotoristas(termo) {
-        termo = termo.toLowerCase();
-        return this.motoristas.filter(m => 
-            m.nome.toLowerCase().includes(termo) ||
-            m.cpf.includes(termo.replace(/\D/g, '')) ||
-            m.cnh.includes(termo) ||
-            m.categoriaCnh.toLowerCase().includes(termo) ||
-            m.telefone?.includes(termo.replace(/\D/g, ''))
-        );
-    }
-
-    // NOVO: Obter estatísticas dos motoristas
-    obterEstatisticasMotoristas() {
-        const total = this.motoristas.length;
-        const ativos = this.obterAtivos().length;
-        const inativos = total - ativos;
-
-        // Calcular VT total
-        let vtTotal = 0;
-        const motoristasAtivos = this.obterAtivos();
-        
-        motoristasAtivos.forEach(motorista => {
-            const carregamentos = carregamentosManager.obterPorMotorista(motorista.id);
-            const diasUnicos = new Set(carregamentos.map(c => c.data)).size;
-            vtTotal += diasUnicos * motorista.vtDiario;
-        });
-
-        return {
-            total,
-            ativos,
-            inativos,
-            vtTotal
-        };
     }
 
     // Formatar CPF
@@ -212,7 +189,7 @@ class MotoristasManager {
         let digito2 = resto < 2 ? 0 : 11 - resto;
         
         return digito2 === parseInt(cpf.charAt(10));
-    }
+    }   
 }
 
 // Instância global do gerenciador de motoristas

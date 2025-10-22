@@ -10,7 +10,7 @@ class LoadControlApp {
         this.comparisonChart = null;
         this.relatorioChart = null;
         this.secaoAnteriorBusca = null;
-        
+
         // Inicializar imediatamente se já estiver autenticado
         if (authManager.isAuthenticated) {
             this.init();
@@ -23,13 +23,12 @@ class LoadControlApp {
         this.carregarDadosIniciais();
         this.atualizarUICompleta();
         this.mudarSecao('dashboard');
-        this.configurarAtalhosTeclado(); // NOVO: Configurar atalhos
     }
 
     // Vincular eventos
     bindEvents() {
         console.log('🔗 Vinculando eventos...');
-        
+
         // Navegação sidebar
         document.querySelectorAll('.nav-item').forEach(item => {
             item.addEventListener('click', (e) => {
@@ -121,7 +120,7 @@ class LoadControlApp {
                 setTimeout(() => {
                     const formCard = document.getElementById('carregamentoFormCard');
                     if (formCard) {
-                        formCard.scrollIntoView({ 
+                        formCard.scrollIntoView({
                             behavior: 'smooth',
                             block: 'start'
                         });
@@ -138,7 +137,7 @@ class LoadControlApp {
                 setTimeout(() => {
                     const veiculoForm = document.getElementById('veiculoForm');
                     if (veiculoForm) {
-                        veiculoForm.scrollIntoView({ 
+                        veiculoForm.scrollIntoView({
                             behavior: 'smooth',
                             block: 'start'
                         });
@@ -201,18 +200,11 @@ class LoadControlApp {
             });
         }
 
-        // NOVO: Eventos para sugestões automáticas
-        const rotaInput = document.getElementById('rota');
-        if (rotaInput) {
-            rotaInput.addEventListener('focus', () => {
-                this.preencherDadosFrequentes();
-            });
-        }
-
-        const numeroInput = document.getElementById('numeroCarregamento');
-        if (numeroInput) {
-            numeroInput.addEventListener('focus', () => {
-                this.preencherDadosFrequentes();
+        // NOVO EVENTO: Quando selecionar motorista, preencher automaticamente a placa
+        const motoristaSelect = document.getElementById('motorista');
+        if (motoristaSelect) {
+            motoristaSelect.addEventListener('change', (e) => {
+                this.preencherPlacaAutomaticamente(e.target.value);
             });
         }
 
@@ -220,182 +212,61 @@ class LoadControlApp {
         this.definirDataAtual();
     }
 
-    // NOVA FUNÇÃO: Configurar atalhos de teclado
-    configurarAtalhosTeclado() {
-        document.addEventListener('keydown', (e) => {
-            // Ctrl + N - Novo carregamento
-            if (e.ctrlKey && e.key === 'n') {
-                e.preventDefault();
-                this.mudarSecao('carregamentos');
+    // NOVA FUNÇÃO: Preencher placa automaticamente baseado no motorista selecionado
+    preencherPlacaAutomaticamente(motoristaId) {
+        if (!motoristaId) {
+            // Limpar campo de veículo se nenhum motorista for selecionado
+            const veiculoSelect = document.getElementById('veiculo');
+            if (veiculoSelect) {
+                veiculoSelect.value = '';
             }
-            
-            // Ctrl + F - Buscar
-            if (e.ctrlKey && e.key === 'f') {
-                e.preventDefault();
-                const searchInput = document.querySelector('.search-input');
-                if (searchInput) searchInput.focus();
-            }
-            
-            // Ctrl + E - Exportar
-            if (e.ctrlKey && e.key === 'e') {
-                e.preventDefault();
-                this.exportManager.exportarParaExcel();
-            }
-
-            // Ctrl + B - Busca rápida por carregamento
-            if (e.ctrlKey && e.key === 'b') {
-                e.preventDefault();
-                this.buscarCarregamentoRapido();
-            }
-        });
-    }
-
-    // NOVA FUNÇÃO: Busca rápida por número de carregamento
-    buscarCarregamentoRapido() {
-        const numero = prompt('🔍 Digite o número do carregamento:');
-        if (numero) {
-            const resultados = this.carregamentosManager.buscarPorNumero(numero);
-            if (resultados.length > 0) {
-                this.mostrarResultadosBuscaRapida(resultados, numero);
-            } else {
-                this.mostrarMensagem('❌ Nenhum carregamento encontrado!', 'warning');
-            }
+            return;
         }
-    }
 
-    // NOVA FUNÇÃO: Mostrar resultados de busca rápida
-    mostrarResultadosBuscaRapida(resultados, termo) {
-        let html = `
-            <div class="search-summary">
-                <h3>🔍 Resultados para: "${termo}"</h3>
-                <p>Encontrados ${resultados.length} carregamento(s)</p>
-            </div>
-            <div class="table-responsive">
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Motorista</th>
-                            <th>Veículo</th>
-                            <th>Data</th>
-                            <th>Rota</th>
-                            <th>Nº Carga</th>
-                            <th>Valor</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-        `;
+        // Buscar o motorista para obter o veículo associado
+        const motorista = this.motoristasManager.obterPorId(motoristaId);
+        if (motorista && motorista.veiculoAssociadoId) {
+            const veiculoSelect = document.getElementById('veiculo');
+            if (veiculoSelect) {
+                veiculoSelect.value = motorista.veiculoAssociadoId;
 
-        resultados.forEach(c => {
-            html += `
-                <tr>
-                    <td>${c.motoristaNome}</td>
-                    <td>${c.veiculoPlaca}</td>
-                    <td>${this.formatarData(c.data)}</td>
-                    <td>${c.rota}</td>
-                    <td>${c.numeroCarregamento}</td>
-                    <td>R$ ${this.formatarMoeda(c.valor)}</td>
-                    <td>
-                        <span class="status-badge status-${c.status.toLowerCase().replace(' ', '-')}">
-                            ${c.status}
-                        </span>
-                    </td>
-                </tr>
-            `;
-        });
-
-        html += `</tbody></table>`;
-
-        // Criar modal para mostrar resultados
-        const modal = document.createElement('div');
-        modal.className = 'modal active';
-        modal.innerHTML = `
-            <div class="modal-content" style="max-width: 900px;">
-                <div class="modal-header">
-                    <h3>🔍 Busca Rápida</h3>
-                    <button class="btn-close" onclick="this.closest('.modal').remove()">×</button>
-                </div>
-                <div class="modal-body">
-                    ${html}
-                </div>
-                <div class="modal-footer">
-                    <button class="btn btn-primary" onclick="this.closest('.modal').remove()">Fechar</button>
-                </div>
-            </div>
-        `;
-
-        document.body.appendChild(modal);
-    }
-
-    // NOVA FUNÇÃO: Preencher automaticamente dados frequentes
-    preencherDadosFrequentes() {
-        const rotaInput = document.getElementById('rota');
-        const numeroInput = document.getElementById('numeroCarregamento');
-        
-        if (rotaInput && !rotaInput.value) {
-            // Sugerir rota mais comum
-            const rotasFrequentes = this.carregamentosManager.obterRotasFrequentes();
-            if (rotasFrequentes.length > 0) {
-                rotaInput.placeholder = `Ex: ${rotasFrequentes[0]}`;
-                // Criar datalist para sugestões
-                if (!document.getElementById('rotasSugeridas')) {
-                    const datalist = document.createElement('datalist');
-                    datalist.id = 'rotasSugeridas';
-                    rotasFrequentes.forEach(rota => {
-                        const option = document.createElement('option');
-                        option.value = rota;
-                        datalist.appendChild(option);
-                    });
-                    document.body.appendChild(datalist);
-                    rotaInput.setAttribute('list', 'rotasSugeridas');
+                // Mostrar mensagem informativa
+                const veiculo = this.veiculosManager.obterPorId(motorista.veiculoAssociadoId);
+                if (veiculo) {
+                    this.mostrarMensagem(`✅ Veículo ${veiculo.placa} preenchido automaticamente (veículo associado ao motorista)`, 'info');
                 }
             }
-        }
-        
-        if (numeroInput && !numeroInput.value) {
-            // Sugerir próximo número
-            const proximoNumero = this.carregamentosManager.sugerirProximoNumero();
-            numeroInput.placeholder = `Próximo: ${proximoNumero}`;
+        } else {
+            // Se não há veículo associado, mostrar mensagem
+            this.mostrarMensagem('⚠️ Este motorista não tem veículo associado. Selecione um veículo manualmente.', 'warning');
         }
     }
 
-    // NOVA FUNÇÃO: Obter rotas mais frequentes
-    obterRotasFrequentes() {
-        const rotasCount = {};
-        this.carregamentosManager.obterTodos().forEach(c => {
-            rotasCount[c.rota] = (rotasCount[c.rota] || 0) + 1;
-        });
-        
-        return Object.keys(rotasCount)
-            .sort((a, b) => rotasCount[b] - rotasCount[a])
-            .slice(0, 5);
-    }
-
-    // Limpar filtros dos relatórios
+    // NOVA FUNÇÃO: Limpar filtros dos relatórios
     limparFiltrosRelatorios() {
         console.log('🧹 Limpando filtros dos relatórios...');
-        
+
         // Limpar os campos de filtro
         const filtroMotorista = document.getElementById('filtroMotorista');
         const filtroVeiculo = document.getElementById('filtroVeiculo');
         const filtroDataInicio = document.getElementById('filtroDataInicio');
         const filtroDataFim = document.getElementById('filtroDataFim');
-        
+
         if (filtroMotorista) filtroMotorista.value = '';
         if (filtroVeiculo) filtroVeiculo.value = '';
         if (filtroDataInicio) filtroDataInicio.value = '';
         if (filtroDataFim) filtroDataFim.value = '';
-        
+
         // Aplicar os filtros limpos para atualizar os relatórios
         this.aplicarFiltrosRelatorios();
-        
+
         this.mostrarMensagem('✅ Filtros limpos com sucesso!', 'success');
     }
 
-    // Exportar relatório filtrado
+    // NOVA FUNÇÃO: Exportar relatório filtrado
     exportarRelatorioFiltrado() {
         console.log('📤 Exportando relatório filtrado...');
-        
+
         // Obter os filtros atuais
         const motoristaId = document.getElementById('filtroMotorista')?.value;
         const veiculoId = document.getElementById('filtroVeiculo')?.value;
@@ -459,13 +330,13 @@ class LoadControlApp {
     // Mudar seção com animação
     mudarSecao(secao) {
         console.log(`🔄 Mudando para seção: ${secao}`);
-        
+
         // Remover seção de busca se existir
         const buscaSection = document.getElementById('busca-section');
         if (buscaSection) {
             buscaSection.remove();
         }
-        
+
         // Limpar campo de busca
         const searchInput = document.querySelector('.search-input');
         if (searchInput) {
@@ -500,9 +371,9 @@ class LoadControlApp {
             'veiculos': { title: 'Veículos', subtitle: 'Controle completo da frota de veículos' },
             'relatorios': { title: 'Relatórios', subtitle: 'Análise detalhada do desempenho da operação' }
         };
-        
+
         const pageInfo = titles[secao] || { title: 'LoadControl Pro', subtitle: 'Sistema de Gestão de Frota' };
-        
+
         const pageTitle = document.getElementById('pageTitle');
         const pageSubtitle = document.getElementById('pageSubtitle');
         if (pageTitle) pageTitle.textContent = pageInfo.title;
@@ -510,13 +381,14 @@ class LoadControlApp {
 
         // Carregar dados específicos da seção
         setTimeout(() => {
-            switch(secao) {
+            switch (secao) {
                 case 'dashboard':
                     this.atualizarDashboard();
                     break;
                 case 'motoristas':
                     this.atualizarListaMotoristas();
                     this.atualizarStatsMotoristas();
+                    this.carregarVeiculosAssociadosSelect(); // NOVO: Carregar select de veículos para associação
                     break;
                 case 'veiculos':
                     this.atualizarListaVeiculos();
@@ -528,7 +400,6 @@ class LoadControlApp {
                 case 'carregamentos':
                     this.atualizarStatsCarregamentos();
                     this.atualizarTabelaCarregamentos();
-                    this.preencherDadosFrequentes(); // NOVO: Preencher sugestões
                     break;
             }
         }, 350);
@@ -542,12 +413,12 @@ class LoadControlApp {
         ];
 
         const motoristas = this.motoristasManager.obterAtivos();
-        
+
         selects.forEach(select => {
             if (select) {
                 const currentValue = select.value;
                 select.innerHTML = '<option value="">Selecione um motorista</option>';
-                
+
                 motoristas.forEach(motorista => {
                     const option = document.createElement('option');
                     option.value = motorista.id;
@@ -571,12 +442,12 @@ class LoadControlApp {
         ];
 
         const veiculos = this.veiculosManager.obterDisponiveis();
-        
+
         selects.forEach(select => {
             if (select) {
                 const currentValue = select.value;
                 select.innerHTML = '<option value="">Selecione um veículo</option>';
-                
+
                 veiculos.forEach(veiculo => {
                     const option = document.createElement('option');
                     option.value = veiculo.id;
@@ -592,12 +463,34 @@ class LoadControlApp {
         });
     }
 
+    // NOVA FUNÇÃO: Carregar veículos para associação no cadastro de motoristas
+    carregarVeiculosAssociadosSelect() {
+        const select = document.getElementById('veiculoAssociado');
+        if (select) {
+            const veiculos = this.veiculosManager.obterDisponiveis();
+            const currentValue = select.value;
+            select.innerHTML = '<option value="">Selecione um veículo</option>';
+
+            veiculos.forEach(veiculo => {
+                const option = document.createElement('option');
+                option.value = veiculo.id;
+                option.textContent = `${veiculo.placa} - ${veiculo.modelo} - ${veiculo.tipo}`;
+                select.appendChild(option);
+            });
+
+            // Manter o valor selecionado se possível
+            if (currentValue && veiculos.some(v => v.id === currentValue)) {
+                select.value = currentValue;
+            }
+        }
+    }
+
     carregarFiltroMotoristas() {
         const select = document.getElementById('filtroMotorista');
         if (select) {
             const motoristas = this.motoristasManager.obterAtivos();
             select.innerHTML = '<option value="">Todos os motoristas</option>';
-            
+
             motoristas.forEach(motorista => {
                 const option = document.createElement('option');
                 option.value = motorista.id;
@@ -612,7 +505,7 @@ class LoadControlApp {
         if (select) {
             const veiculos = this.veiculosManager.obterTodos();
             select.innerHTML = '<option value="">Todos os veículos</option>';
-            
+
             veiculos.forEach(veiculo => {
                 const option = document.createElement('option');
                 option.value = veiculo.id;
@@ -625,22 +518,17 @@ class LoadControlApp {
     // CARREGAMENTOS
     adicionarCarregamento() {
         const formData = this.obterDadosFormularioCarregamento();
-        
-        // DEBUG: Verificar a data antes de salvar
-        console.log('🔍 DEBUG - Data do formulário:', formData.data);
-        console.log('🔍 DEBUG - Data atual Brasília:', this.obterDataBrasiliaFormatada());
-        
+
         if (!this.validarDadosCarregamento(formData)) {
             return;
         }
 
         try {
             const novoCarregamento = this.carregamentosManager.adicionar(formData);
-            console.log('✅ Carregamento salvo com data:', novoCarregamento.data);
             this.mostrarMensagem('✅ Carregamento adicionado com sucesso!', 'success');
             this.limparFormularioCarregamento();
             this.atualizarUICompleta();
-            
+
         } catch (error) {
             this.mostrarMensagem(`❌ ${error.message}`, 'error');
         }
@@ -649,7 +537,7 @@ class LoadControlApp {
     obterDadosFormularioCarregamento() {
         const valorInput = document.getElementById('valor');
         let valor = 0;
-        
+
         if (valorInput && valorInput.value) {
             valor = parseFloat(valorInput.value);
             if (isNaN(valor)) {
@@ -670,7 +558,7 @@ class LoadControlApp {
 
     validarDadosCarregamento(dados) {
         const camposObrigatorios = ['motoristaId', 'veiculoId', 'data', 'rota', 'numeroCarregamento', 'valor'];
-        
+
         for (let campo of camposObrigatorios) {
             if (!dados[campo]) {
                 this.mostrarMensagem('⚠️ Preencha todos os campos obrigatórios!', 'warning');
@@ -691,36 +579,20 @@ class LoadControlApp {
         if (form) {
             form.reset();
             this.definirDataAtual();
-            this.preencherDadosFrequentes(); // NOVO: Atualizar sugestões
             const rotaInput = document.getElementById('rota');
             if (rotaInput) rotaInput.focus();
         }
     }
 
-    // Função principal corrigida para definir data atual
     definirDataAtual() {
         const dataInput = document.getElementById('data');
         if (dataInput) {
-            const dataCorrigida = this.obterDataBrasiliaFormatada();
-            dataInput.value = dataCorrigida;
-            console.log('📅 Data definida (Brasília):', dataCorrigida);
+            const hoje = new Date();
+            const offset = hoje.getTimezoneOffset();
+            const localDate = new Date(hoje.getTime() - (offset * 60 * 1000));
+            const dataLocal = localDate.toISOString().split('T')[0];
+            dataInput.value = dataLocal;
         }
-    }
-
-    // Função para obter data no fuso horário de Brasília formatada como YYYY-MM-DD
-    obterDataBrasiliaFormatada() {
-        return this.obterDataBrasilia().toISOString().split('T')[0];
-    }
-
-    // Função para obter objeto Date no fuso horário de Brasília
-    obterDataBrasilia() {
-        const agora = new Date();
-        // Brasília é UTC-3, mas vamos calcular baseado no offset real
-        const offsetLocal = agora.getTimezoneOffset(); // em minutos
-        const offsetBrasilia = 180; // UTC-3 = 180 minutos
-        const diferenca = offsetBrasilia + offsetLocal; // diferença em minutos
-        
-        return new Date(agora.getTime() + diferenca * 60000);
     }
 
     atualizarTabelaCarregamentos() {
@@ -811,15 +683,15 @@ class LoadControlApp {
 
             // Remover o item original
             this.carregamentosManager.remover(id);
-            
+
             this.mostrarMensagem('📝 Carregamento carregado para edição!', 'info');
             const rotaInput = document.getElementById('rota');
             if (rotaInput) rotaInput.focus();
-            
+
             // Scroll para o formulário
             const formCard = document.getElementById('carregamentoFormCard');
             if (formCard) {
-                formCard.scrollIntoView({ 
+                formCard.scrollIntoView({
                     behavior: 'smooth',
                     block: 'start'
                 });
@@ -843,7 +715,7 @@ class LoadControlApp {
     // MOTORISTAS
     adicionarMotorista() {
         const formData = this.obterDadosFormularioMotorista();
-        
+
         if (!this.validarDadosMotorista(formData)) {
             return;
         }
@@ -853,7 +725,7 @@ class LoadControlApp {
             this.mostrarMensagem('✅ Motorista cadastrado com sucesso!', 'success');
             this.limparFormularioMotorista();
             this.atualizarUICompleta();
-            
+
         } catch (error) {
             this.mostrarMensagem(`❌ ${error.message}`, 'error');
         }
@@ -863,13 +735,14 @@ class LoadControlApp {
         const motorista = this.motoristasManager.obterPorId(id);
         if (motorista) {
             this.motoristaEditando = id;
-            
+
             // Preencher formulário com dados existentes
             document.getElementById('nomeMotorista').value = motorista.nome;
             document.getElementById('cpf').value = this.motoristasManager.formatarCPF(motorista.cpf);
             document.getElementById('telefone').value = motorista.telefone ? this.motoristasManager.formatarTelefone(motorista.telefone) : '';
             document.getElementById('cnh').value = motorista.cnh;
             document.getElementById('categoriaCnh').value = motorista.categoriaCnh;
+            document.getElementById('veiculoAssociado').value = motorista.veiculoAssociadoId || '';
             document.getElementById('vtDiario').value = motorista.vtDiario;
 
             // Mudar texto do botão
@@ -886,7 +759,7 @@ class LoadControlApp {
 
     salvarEdicaoMotorista() {
         const formData = this.obterDadosFormularioMotorista();
-        
+
         if (!this.validarDadosMotorista(formData)) {
             return;
         }
@@ -915,7 +788,7 @@ class LoadControlApp {
             // Remover motorista da lista
             this.motoristasManager.motoristas = this.motoristasManager.motoristas.filter(m => m.id !== id);
             this.motoristasManager.salvarNoLocalStorage();
-            
+
             this.mostrarMensagem('✅ Motorista excluído com sucesso!', 'success');
             this.atualizarUICompleta();
         }
@@ -938,7 +811,7 @@ class LoadControlApp {
     obterDadosFormularioMotorista() {
         const vtDiarioInput = document.getElementById('vtDiario');
         let vtDiario = 9.00;
-        
+
         if (vtDiarioInput && vtDiarioInput.value) {
             vtDiario = parseFloat(vtDiarioInput.value);
             if (isNaN(vtDiario)) {
@@ -952,13 +825,14 @@ class LoadControlApp {
             telefone: document.getElementById('telefone').value.replace(/\D/g, ''),
             cnh: document.getElementById('cnh').value,
             categoriaCnh: document.getElementById('categoriaCnh').value,
+            veiculoAssociadoId: document.getElementById('veiculoAssociado').value,
             vtDiario: vtDiario
         };
     }
 
     validarDadosMotorista(dados) {
-        if (!dados.nome || !dados.cpf || !dados.cnh) {
-            this.mostrarMensagem('⚠️ Preencha nome, CPF e CNH!', 'warning');
+        if (!dados.nome || !dados.cpf || !dados.cnh || !dados.veiculoAssociadoId) {
+            this.mostrarMensagem('⚠️ Preencha nome, CPF, CNH e veículo associado!', 'warning');
             return false;
         }
 
@@ -1004,7 +878,7 @@ class LoadControlApp {
         if (motoristas.length === 0) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="7" class="empty-state">
+                    <td colspan="8" class="empty-state">
                         <div class="empty-icon">👥</div>
                         <h3>Nenhum motorista cadastrado</h3>
                         <p>Cadastre o primeiro motorista usando o formulário acima.</p>
@@ -1017,7 +891,11 @@ class LoadControlApp {
             return;
         }
 
-        tbody.innerHTML = motoristas.map(motorista => `
+        tbody.innerHTML = motoristas.map(motorista => {
+            const veiculoAssociado = motorista.veiculoAssociadoId ?
+                this.veiculosManager.obterPorId(motorista.veiculoAssociadoId) : null;
+
+            return `
             <tr>
                 <td>
                     <div class="driver-info-small">
@@ -1026,6 +904,7 @@ class LoadControlApp {
                             <strong>${motorista.nome}</strong>
                             <div class="driver-details">
                                 <small>CNH: ${motorista.cnh} - ${motorista.categoriaCnh}</small>
+                                ${veiculoAssociado ? `<small>Veículo: ${veiculoAssociado.placa}</small>` : ''}
                             </div>
                         </div>
                     </div>
@@ -1037,6 +916,12 @@ class LoadControlApp {
                     <span class="status-badge ${motorista.ativo ? 'status-active' : 'status-inactive'}">
                         ${motorista.ativo ? 'Ativo' : 'Inativo'}
                     </span>
+                </td>
+                <td>
+                    ${veiculoAssociado ?
+                    `<span class="vehicle-placa-small">${veiculoAssociado.placa}</span>` :
+                    '<span class="text-muted">Não associado</span>'
+                }
                 </td>
                 <td class="actions-cell">
                     <button class="btn-icon btn-edit" onclick="app.editarMotorista('${motorista.id}')" title="Editar">
@@ -1056,13 +941,13 @@ class LoadControlApp {
                     </button>
                 </td>
             </tr>
-        `).join('');
+        `}).join('');
     }
 
     // VEÍCULOS
     adicionarVeiculo() {
         const formData = this.obterDadosFormularioVeiculo();
-        
+
         if (!this.validarDadosVeiculo(formData)) {
             return;
         }
@@ -1072,7 +957,7 @@ class LoadControlApp {
             this.mostrarMensagem('✅ Veículo cadastrado com sucesso!', 'success');
             this.limparFormularioVeiculo();
             this.atualizarUICompleta();
-            
+
         } catch (error) {
             this.mostrarMensagem(`❌ ${error.message}`, 'error');
         }
@@ -1082,7 +967,7 @@ class LoadControlApp {
         const veiculo = this.veiculosManager.obterPorId(id);
         if (veiculo) {
             this.veiculoEditando = id;
-            
+
             // Preencher formulário com dados existentes
             document.getElementById('placa').value = veiculo.placa;
             document.getElementById('modelo').value = veiculo.modelo;
@@ -1105,7 +990,7 @@ class LoadControlApp {
 
     salvarEdicaoVeiculo() {
         const formData = this.obterDadosFormularioVeiculo();
-        
+
         if (!this.validarDadosVeiculo(formData)) {
             return;
         }
@@ -1148,7 +1033,7 @@ class LoadControlApp {
     obterDadosFormularioVeiculo() {
         const anoInput = document.getElementById('ano');
         let ano = new Date().getFullYear();
-        
+
         if (anoInput && anoInput.value) {
             ano = parseInt(anoInput.value);
             if (isNaN(ano)) {
@@ -1291,12 +1176,10 @@ class LoadControlApp {
 
     // NOVA FUNÇÃO: Métricas rápidas
     atualizarMetricasRapidas() {
-        const hoje = this.obterDataBrasiliaFormatada();
-        console.log('📊 Métricas rápidas - Data de hoje:', hoje);
-        
+        const hoje = new Date().toISOString().split('T')[0];
         const carregamentosHoje = this.carregamentosManager.obterTodos()
             .filter(c => c.data === hoje);
-        
+
         const valorHoje = carregamentosHoje.reduce((sum, c) => sum + c.valor, 0);
         const pendentes = this.carregamentosManager.obterTodos()
             .filter(c => c.status === 'Pendente').length;
@@ -1328,11 +1211,6 @@ class LoadControlApp {
                 </div>
             `;
         }
-
-        // Atualizar também os elementos específicos do dashboard
-        this.atualizarElementoTexto('faturamentoHoje', `R$ ${this.formatarMoeda(valorHoje)}`);
-        this.atualizarElementoTexto('carregamentosHojeDashboard', carregamentosHoje.length.toString());
-        this.atualizarElementoTexto('carregamentosPendentes', pendentes.toString());
     }
 
     atualizarAtividadeRecente() {
@@ -1340,7 +1218,7 @@ class LoadControlApp {
         if (!container) return;
 
         const carregamentos = this.carregamentosManager.obterTodos().slice(0, 5);
-        
+
         if (carregamentos.length === 0) {
             container.innerHTML = `
                 <div class="empty-state">
@@ -1371,7 +1249,7 @@ class LoadControlApp {
         if (!container) return;
 
         const estatisticas = this.carregamentosManager.obterEstatisticasMotoristas().slice(0, 4);
-        
+
         if (estatisticas.length === 0) {
             container.innerHTML = `
                 <div class="empty-state">
@@ -1480,7 +1358,7 @@ class LoadControlApp {
                         beginAtZero: true,
                         ticks: {
                             color: '#cbd5e1',
-                            callback: function(value) {
+                            callback: function (value) {
                                 return 'R$ ' + value.toLocaleString('pt-BR');
                             }
                         },
@@ -1555,7 +1433,7 @@ class LoadControlApp {
                     </td>
                 </tr>
             `;
-            
+
             this.limparGraficoRelatorio();
             return;
         }
@@ -1581,7 +1459,7 @@ class LoadControlApp {
 
         motoristas.forEach(motorista => {
             const carregamentosMotorista = carregamentosFiltrados.filter(c => c.motoristaId === motorista.id);
-            
+
             if (carregamentosMotorista.length > 0) {
                 const totalValor = carregamentosMotorista.reduce((sum, c) => sum + c.valor, 0);
                 const diasUnicos = new Set(carregamentosMotorista.map(c => c.data)).size;
@@ -1615,12 +1493,12 @@ class LoadControlApp {
 
         const totalMensal = carregamentosFiltrados.reduce((sum, c) => sum + c.valor, 0);
         const ticketMedio = totalMensal / carregamentosFiltrados.length;
-        
+
         const diasUnicos = new Set(carregamentosFiltrados.map(c => c.data)).size;
-        
+
         let vtTotal = 0;
         const motoristasAtivos = this.motoristasManager.obterAtivos();
-        
+
         motoristasAtivos.forEach(motorista => {
             const carregamentosMotorista = carregamentosFiltrados.filter(c => c.motoristaId === motorista.id);
             const diasTrabalhadosMotorista = new Set(carregamentosMotorista.map(c => c.data)).size;
@@ -1638,7 +1516,7 @@ class LoadControlApp {
     atualizarGraficoRelatorio(estatisticas) {
         const ctx = document.getElementById('relatorioChart');
         if (!ctx) return;
-        
+
         // Destruir gráfico anterior se existir
         if (this.relatorioChart) {
             this.relatorioChart.destroy();
@@ -1693,7 +1571,7 @@ class LoadControlApp {
                         beginAtZero: true,
                         ticks: {
                             color: '#cbd5e1',
-                            callback: function(value) {
+                            callback: function (value) {
                                 return 'R$ ' + value.toLocaleString('pt-BR');
                             }
                         },
@@ -1739,10 +1617,10 @@ class LoadControlApp {
         }
 
         termo = termo.toLowerCase();
-        
+
         // Buscar em todas as seções
         const resultados = {
-            carregamentos: this.carregamentosManager.obterTodos().filter(c => 
+            carregamentos: this.carregamentosManager.obterTodos().filter(c =>
                 c.motoristaNome.toLowerCase().includes(termo) ||
                 c.veiculoPlaca.toLowerCase().includes(termo) ||
                 c.rota.toLowerCase().includes(termo) ||
@@ -1774,7 +1652,7 @@ class LoadControlApp {
     mostrarResultadosBusca(resultados, termo) {
         // Criar ou atualizar seção de resultados
         let resultadosSection = document.getElementById('busca-section');
-        
+
         if (!resultadosSection) {
             resultadosSection = document.createElement('div');
             resultadosSection.id = 'busca-section';
@@ -2043,62 +1921,63 @@ class LoadControlApp {
         if (buscaSection) {
             buscaSection.remove();
         }
-        
+
         if (this.secaoAnteriorBusca) {
             this.mudarSecao(this.secaoAnteriorBusca);
         } else {
             this.mudarSecao('dashboard');
         }
-        
+
         // Limpar campo de busca
         const searchInput = document.querySelector('.search-input');
         if (searchInput) {
             searchInput.value = '';
         }
-        
+
         this.secaoAnteriorBusca = null;
     }
 
     // ATUALIZAÇÃO COMPLETA DO SISTEMA
     atualizarUICompleta() {
         console.log('🔄 Atualizando interface completa...');
-        
+
         // Atualizar todas as seções
         this.atualizarTabelaCarregamentos();
         this.atualizarListaMotoristas();
         this.atualizarListaVeiculos();
-        
+
         // Atualizar estatísticas
         this.atualizarStatsMotoristas();
         this.atualizarStatsVeiculos();
         this.atualizarStatsCarregamentos();
-        
+
         // Atualizar selects
         this.carregarMotoristasSelect();
         this.carregarVeiculosSelect();
+        this.carregarVeiculosAssociadosSelect(); // NOVO: Carregar select de veículos para associação
         this.carregarFiltroMotoristas();
         this.carregarFiltroVeiculos();
-        
+
         // Atualizar dashboard se estiver ativo
         if (document.querySelector('#dashboard-section.active')) {
             this.atualizarDashboard();
         }
-        
+
         // Atualizar relatórios se estiver ativo
         if (document.querySelector('#relatorios-section.active')) {
             this.carregarRelatorios();
         }
-        
+
         // Atualizar contadores da sidebar
         this.atualizarContadoresSidebar();
     }
 
     atualizarStatsCarregamentos() {
         const totais = this.carregamentosManager.calcularTotais();
-        const hoje = this.obterDataBrasiliaFormatada();
+        const hoje = new Date().toISOString().split('T')[0];
         const carregamentosHoje = this.carregamentosManager.obterTodos()
             .filter(c => c.data === hoje).length;
-        
+
         const umaSemanaAtras = new Date();
         umaSemanaAtras.setDate(umaSemanaAtras.getDate() - 7);
         const carregamentosSemana = this.carregamentosManager.obterTodos()
@@ -2114,7 +1993,7 @@ class LoadControlApp {
         const motoristas = this.motoristasManager.obterTodos();
         const ativos = motoristas.filter(m => m.ativo).length;
         const inativos = motoristas.filter(m => !m.ativo).length;
-        
+
         let vtTotal = 0;
         motoristas.filter(m => m.ativo).forEach(motorista => {
             const carregamentos = this.carregamentosManager.obterPorMotorista(motorista.id);
@@ -2154,40 +2033,8 @@ class LoadControlApp {
         }).format(valor);
     }
 
-    // Função para formatar data de YYYY-MM-DD para DD/MM/YYYY
-    formatarData(dataString) {
-        if (!dataString) return 'Data inválida';
-        
-        try {
-            // Se já estiver no formato DD/MM/YYYY, retorna como está
-            if (dataString.includes('/')) {
-                return dataString;
-            }
-            
-            // Converte de YYYY-MM-DD para DD/MM/YYYY
-            const [ano, mes, dia] = dataString.split('-');
-            return `${dia.padStart(2, '0')}/${mes.padStart(2, '0')}/${ano}`;
-        } catch (error) {
-            console.error('Erro ao formatar data:', error, dataString);
-            return dataString;
-        }
-    }
-
-    // Função para converter data do formato DD/MM/YYYY para YYYY-MM-DD
-    converterParaFormatoInput(dataString) {
-        if (!dataString) return '';
-        
-        try {
-            if (dataString.includes('-')) {
-                return dataString; // Já está no formato correto
-            }
-            
-            const [dia, mes, ano] = dataString.split('/');
-            return `${ano}-${mes.padStart(2, '0')}-${dia.padStart(2, '0')}`;
-        } catch (error) {
-            console.error('Erro ao converter data:', error, dataString);
-            return dataString;
-        }
+    formatarData(data) {
+        return new Date(data).toLocaleDateString('pt-BR');
     }
 
     mostrarMensagem(mensagem, tipo = 'info') {

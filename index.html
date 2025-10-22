@@ -317,7 +317,8 @@
                             </div>
                             <div class="form-group">
                                 <label for="rota">🛣️ Rota *</label>
-                                <input type="text" id="rota" placeholder="Ex: SP-RJ" required class="modern-input" list="rotasSugeridas">
+                                <input type="text" id="rota" placeholder="Ex: SP-RJ" required class="modern-input"
+                                    list="rotasSugeridas">
                                 <!-- NOVO: Datalist para sugestões de rotas -->
                                 <datalist id="rotasSugeridas">
                                     <!-- Sugestões serão preenchidas via JavaScript -->
@@ -465,11 +466,17 @@
                             <div class="form-group">
                                 <label for="categoriaCnh">📄 Categoria CNH</label>
                                 <select id="categoriaCnh" class="modern-select">
-                                    <option value="A">A</option>
+                                    <option value="A">AB</option>
                                     <option value="B">B</option>
                                     <option value="C">C</option>
                                     <option value="D">D</option>
                                     <option value="E">E</option>
+                                    <option value="E">AE</option>
+                                    <option value="E">AC</option>
+                                    <option value="E">AD</option>
+                                    <option value="E">BC</option>
+                                    <option value="E">BE</option>
+                                    <option value="E">BD</option>
                                 </select>
                             </div>
                             <div class="form-group">
@@ -478,7 +485,12 @@
                                     class="modern-input">
                             </div>
                         </div>
-
+                        <div class="form-group">
+                            <label for="veiculoAssociado">🚚 Veículo Associado *</label>
+                            <select id="veiculoAssociado" required class="modern-select">
+                                <option value="">Selecione um veículo</option>
+                            </select>
+                        </div>
                         <div class="form-actions">
                             <button type="submit" class="btn btn-primary btn-lg" id="submitMotoristaBtn">
                                 <span class="btn-icon">👥</span>
@@ -813,14 +825,14 @@
     <!-- Script de Correções Simplificado - VERSÃO DEFINITIVA -->
     <script>
         // Correção definitiva para data - FUSO HORÁRIO BRASÍLIA
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             console.log('🚀 Inicializando correções de data...');
-            
+
             // Função definitiva para obter data de Brasília
             function obterDataBrasilia() {
                 const agora = new Date();
                 // Método mais confiável: usar toLocaleString com timezone
-                const dataBrasilia = new Date(agora.toLocaleString("en-US", {timeZone: "America/Sao_Paulo"}));
+                const dataBrasilia = new Date(agora.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
                 return dataBrasilia;
             }
 
@@ -838,14 +850,14 @@
                 const dataBrasilia = obterDataBrasilia();
                 const dataFormatada = formatarDataInput(dataBrasilia);
                 dataInput.value = dataFormatada;
-                console.log('✅ Data definida (Brasília):', dataFormatada, 
-                           'Data UTC:', new Date().toISOString(), 
-                           'Data Local:', new Date().toLocaleString());
+                console.log('✅ Data definida (Brasília):', dataFormatada,
+                    'Data UTC:', new Date().toISOString(),
+                    'Data Local:', new Date().toLocaleString());
             }
 
             // Monitorar mudanças no formulário para debug
             if (dataInput) {
-                dataInput.addEventListener('change', function(e) {
+                dataInput.addEventListener('change', function (e) {
                     console.log('📅 Data alterada pelo usuário:', e.target.value);
                 });
             }
@@ -855,15 +867,15 @@
                 try {
                     const carregamentos = JSON.parse(localStorage.getItem('carregamentos')) || [];
                     const rotasCount = {};
-                    
+
                     carregamentos.forEach(c => {
                         rotasCount[c.rota] = (rotasCount[c.rota] || 0) + 1;
                     });
-                    
+
                     const rotasFrequentes = Object.keys(rotasCount)
                         .sort((a, b) => rotasCount[b] - rotasCount[a])
                         .slice(0, 5);
-                    
+
                     const datalist = document.getElementById('rotasSugeridas');
                     if (datalist) {
                         datalist.innerHTML = '';
@@ -886,7 +898,7 @@
         function inicializarDataAtual() {
             const dataInput = document.getElementById('data');
             if (dataInput && !dataInput.value) {
-                const dataBrasilia = new Date(new Date().toLocaleString("en-US", {timeZone: "America/Sao_Paulo"}));
+                const dataBrasilia = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
                 const ano = dataBrasilia.getFullYear();
                 const mes = String(dataBrasilia.getMonth() + 1).padStart(2, '0');
                 const dia = String(dataBrasilia.getDate()).padStart(2, '0');
@@ -924,17 +936,17 @@
         }
 
         // Event listeners
-        window.addEventListener('storage', function(e) {
+        window.addEventListener('storage', function (e) {
             if (e.key === 'veiculos' || e.key === 'carregamentos') {
                 setTimeout(atualizarEstatisticasFrota, 100);
             }
         });
 
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             setTimeout(atualizarEstatisticasFrota, 500);
         });
 
-        document.addEventListener('click', function(e) {
+        document.addEventListener('click', function (e) {
             if (e.target.closest('[data-section="carregamentos"]')) {
                 setTimeout(inicializarDataAtual, 100);
             }
