@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="css/style.css">
     <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="icon" type="image/x-icon" href="./assets/delivery-truck.png">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
 </head>
 
@@ -84,22 +85,22 @@
                 </a>
             </nav>
 
-            <!-- NOVO: Seção de Atalhos -->
+            <!-- MODIFICADO: Seção de Atalhos com Shift -->
             <div class="sidebar-shortcuts">
                 <div class="shortcut-item">
-                    <kbd>Ctrl</kbd> + <kbd>N</kbd>
+                    <kbd>Shift</kbd> + <kbd>N</kbd>
                     <span>Novo Carregamento</span>
                 </div>
                 <div class="shortcut-item">
-                    <kbd>Ctrl</kbd> + <kbd>F</kbd>
+                    <kbd>Shift</kbd> + <kbd>F</kbd>
                     <span>Buscar</span>
                 </div>
                 <div class="shortcut-item">
-                    <kbd>Ctrl</kbd> + <kbd>E</kbd>
+                    <kbd>Shift</kbd> + <kbd>E</kbd>
                     <span>Exportar</span>
                 </div>
                 <div class="shortcut-item">
-                    <kbd>Ctrl</kbd> + <kbd>B</kbd>
+                    <kbd>Shift</kbd> + <kbd>B</kbd>
                     <span>Buscar Carga</span>
                 </div>
             </div>
@@ -132,8 +133,8 @@
                         <input type="text" placeholder="Buscar carregamentos, motoristas..." class="search-input">
                         <span class="search-icon">🔍</span>
                     </div>
-                    <!-- NOVO: Botão de busca rápida -->
-                    <button class="btn btn-secondary" onclick="app.buscarCarregamentoRapido()" title="Ctrl + B">
+                    <!-- MODIFICADO: Atalho alterado para Shift + B -->
+                    <button class="btn btn-secondary" onclick="app.buscarCarregamentoRapido()" title="Shift + B">
                         <span class="btn-icon">🔍</span>
                         Buscar Carga
                     </button>
@@ -339,7 +340,13 @@
                             </div>
                         </div>
 
+                        <!-- NOVO: Linha adicional para o Valor do Carregamento -->
                         <div class="form-row">
+                            <div class="form-group">
+                                <label for="valorCarregamento">💰 Valor do Carregamento *</label>
+                                <input type="number" id="valorCarregamento" step="0.01" placeholder="0,00" required
+                                    class="modern-input">
+                            </div>
                             <div class="form-group">
                                 <label for="status">📊 Status</label>
                                 <select id="status" class="modern-select">
@@ -385,7 +392,8 @@
                                     <th>Data</th>
                                     <th>Rota</th>
                                     <th>Nº Carregamento</th>
-                                    <th>Valor</th>
+                                    <th>Valor (R$)</th>
+                                    <th>Valor Carregamento</th>
                                     <th>Status</th>
                                     <th width="120">Ações</th>
                                 </tr>
@@ -861,101 +869,7 @@
                     console.log('📅 Data alterada pelo usuário:', e.target.value);
                 });
             }
-
-            // Preencher datalist de rotas sugeridas
-            function preencherRotasSugeridas() {
-                try {
-                    const carregamentos = JSON.parse(localStorage.getItem('carregamentos')) || [];
-                    const rotasCount = {};
-
-                    carregamentos.forEach(c => {
-                        rotasCount[c.rota] = (rotasCount[c.rota] || 0) + 1;
-                    });
-
-                    const rotasFrequentes = Object.keys(rotasCount)
-                        .sort((a, b) => rotasCount[b] - rotasCount[a])
-                        .slice(0, 5);
-
-                    const datalist = document.getElementById('rotasSugeridas');
-                    if (datalist) {
-                        datalist.innerHTML = '';
-                        rotasFrequentes.forEach(rota => {
-                            const option = document.createElement('option');
-                            option.value = rota;
-                            datalist.appendChild(option);
-                        });
-                    }
-                } catch (error) {
-                    console.error('Erro ao preencher rotas sugeridas:', error);
-                }
-            }
-
-            // Chamar quando o DOM estiver pronto
-            setTimeout(preencherRotasSugeridas, 1000);
         });
-
-        // Função auxiliar para inicializar data quando necessário
-        function inicializarDataAtual() {
-            const dataInput = document.getElementById('data');
-            if (dataInput && !dataInput.value) {
-                const dataBrasilia = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
-                const ano = dataBrasilia.getFullYear();
-                const mes = String(dataBrasilia.getMonth() + 1).padStart(2, '0');
-                const dia = String(dataBrasilia.getDate()).padStart(2, '0');
-                dataInput.value = `${ano}-${mes}-${dia}`;
-            }
-        }
-
-        // Atualizar estatísticas da frota
-        function atualizarEstatisticasFrota() {
-            try {
-                const veiculos = JSON.parse(localStorage.getItem('veiculos')) || [];
-                const totalVeiculos = veiculos.length;
-                const veiculosDisponiveis = veiculos.filter(v => v.status === 'Disponível').length;
-                const emManutencao = veiculos.filter(v => v.status === 'Manutenção').length;
-                const taxaUtilizacao = totalVeiculos > 0 ? Math.round((veiculosDisponiveis / totalVeiculos) * 100) : 0;
-
-                const atualizarElemento = (id, valor) => {
-                    const elemento = document.getElementById(id);
-                    if (elemento) elemento.textContent = valor;
-                };
-
-                atualizarElemento('totalVeiculosRelatorio', totalVeiculos);
-                atualizarElemento('veiculosDisponiveisRelatorio', veiculosDisponiveis);
-                atualizarElemento('veiculosManutencaoRelatorio', emManutencao);
-                atualizarElemento('taxaUtilizacaoRelatorio', taxaUtilizacao + '%');
-                atualizarElemento('totalVeiculos', totalVeiculos);
-                atualizarElemento('veiculosAtivos', veiculosDisponiveis);
-                atualizarElemento('veiculosManutencao', emManutencao);
-                atualizarElemento('veiculosDisponiveis', veiculosDisponiveis);
-                atualizarElemento('dashboardVeiculos', totalVeiculos);
-
-            } catch (error) {
-                console.error('Erro ao atualizar estatísticas da frota:', error);
-            }
-        }
-
-        // Event listeners
-        window.addEventListener('storage', function (e) {
-            if (e.key === 'veiculos' || e.key === 'carregamentos') {
-                setTimeout(atualizarEstatisticasFrota, 100);
-            }
-        });
-
-        document.addEventListener('DOMContentLoaded', function () {
-            setTimeout(atualizarEstatisticasFrota, 500);
-        });
-
-        document.addEventListener('click', function (e) {
-            if (e.target.closest('[data-section="carregamentos"]')) {
-                setTimeout(inicializarDataAtual, 100);
-            }
-        });
-
-        // NOVO: Template de importação
-        function exportarTemplate() {
-            exportManager.exportarTemplate();
-        }
     </script>
 </body>
 

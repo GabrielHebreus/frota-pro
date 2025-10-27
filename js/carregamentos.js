@@ -51,6 +51,7 @@ class CarregamentosManager {
             rota: carregamento.rota,
             numeroCarregamento: carregamento.numeroCarregamento,
             valor: parseFloat(carregamento.valor),
+            valorCarregamento: parseFloat(carregamento.valorCarregamento), // CORREÇÃO: Campo adicionado
             status: carregamento.status || 'Pendente',
             timestamp: new Date().toISOString()
         };
@@ -73,7 +74,8 @@ class CarregamentosManager {
             this.carregamentos[index] = {
                 ...this.carregamentos[index],
                 ...dadosAtualizados,
-                valor: parseFloat(dadosAtualizados.valor)
+                valor: parseFloat(dadosAtualizados.valor),
+                valorCarregamento: parseFloat(dadosAtualizados.valorCarregamento) // CORREÇÃO: Campo adicionado
             };
             this.salvarNoLocalStorage();
             return this.carregamentos[index];

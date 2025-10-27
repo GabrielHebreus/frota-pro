@@ -545,6 +545,16 @@ class LoadControlApp {
             }
         }
 
+        const valorCarregamentoInput = document.getElementById('valorCarregamento');
+        let valorCarregamento = 0;
+
+        if (valorCarregamentoInput && valorCarregamentoInput.value) {
+            valorCarregamento = parseFloat(valorCarregamentoInput.value);
+            if (isNaN(valorCarregamento)) {
+                valorCarregamento = 0;
+            }
+        }
+
         return {
             motoristaId: document.getElementById('motorista').value,
             veiculoId: document.getElementById('veiculo').value,
@@ -552,12 +562,13 @@ class LoadControlApp {
             rota: document.getElementById('rota').value,
             numeroCarregamento: document.getElementById('numeroCarregamento').value,
             valor: valor,
+            valorCarregamento: valorCarregamento, // CORREÇÃO: Campo incluído
             status: document.getElementById('status').value
         };
     }
 
     validarDadosCarregamento(dados) {
-        const camposObrigatorios = ['motoristaId', 'veiculoId', 'data', 'rota', 'numeroCarregamento', 'valor'];
+        const camposObrigatorios = ['motoristaId', 'veiculoId', 'data', 'rota', 'numeroCarregamento', 'valor', 'valorCarregamento'];
 
         for (let campo of camposObrigatorios) {
             if (!dados[campo]) {
@@ -568,6 +579,11 @@ class LoadControlApp {
 
         if (parseFloat(dados.valor) <= 0) {
             this.mostrarMensagem('⚠️ O valor deve ser maior que zero!', 'warning');
+            return false;
+        }
+
+        if (parseFloat(dados.valorCarregamento) <= 0) {
+            this.mostrarMensagem('⚠️ O valor do carregamento deve ser maior que zero!', 'warning');
             return false;
         }
 
@@ -604,7 +620,7 @@ class LoadControlApp {
         if (carregamentos.length === 0) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="8" class="empty-state">
+                    <td colspan="9" class="empty-state">
                         <div class="empty-icon">📦</div>
                         <h3>Nenhum carregamento registrado</h3>
                         <p>Adicione seu primeiro carregamento usando o formulário acima.</p>
@@ -638,6 +654,7 @@ class LoadControlApp {
                     <span class="numero-carregamento">${carregamento.numeroCarregamento}</span>
                 </td>
                 <td class="valor-destaque">R$ ${this.formatarMoeda(carregamento.valor)}</td>
+                <td class="valor-destaque">R$ ${this.formatarMoeda(carregamento.valorCarregamento)}</td>
                 <td>
                     <span class="status-badge status-${carregamento.status ? carregamento.status.toLowerCase().replace(' ', '-') : 'pendente'}">
                         ${carregamento.status || 'Pendente'}
@@ -679,6 +696,7 @@ class LoadControlApp {
             document.getElementById('rota').value = carregamento.rota;
             document.getElementById('numeroCarregamento').value = carregamento.numeroCarregamento;
             document.getElementById('valor').value = carregamento.valor;
+            document.getElementById('valorCarregamento').value = carregamento.valorCarregamento; // CORREÇÃO: Campo incluído
             document.getElementById('status').value = carregamento.status;
 
             // Remover o item original
@@ -1626,6 +1644,7 @@ class LoadControlApp {
                 c.rota.toLowerCase().includes(termo) ||
                 c.numeroCarregamento.toLowerCase().includes(termo) ||
                 c.valor.toString().includes(termo) ||
+                c.valorCarregamento.toString().includes(termo) || // CORREÇÃO: Campo incluído
                 c.status.toLowerCase().includes(termo)
             ),
             motoristas: this.motoristasManager.obterTodos().filter(m =>
@@ -1738,7 +1757,8 @@ class LoadControlApp {
                                         <th>Data</th>
                                         <th>Rota</th>
                                         <th>Nº Carga</th>
-                                        <th>Valor</th>
+                                        <th>Valor (R$)</th>
+                                        <th>Valor Carregamento</th>
                                         <th>Status</th>
                                         <th>Ações</th>
                                     </tr>
@@ -1765,6 +1785,7 @@ class LoadControlApp {
                                                 <span class="numero-carregamento">${this.destacarTermo(c.numeroCarregamento, termo)}</span>
                                             </td>
                                             <td class="valor-destaque">R$ ${this.formatarMoeda(c.valor)}</td>
+                                            <td class="valor-destaque">R$ ${this.formatarMoeda(c.valorCarregamento)}</td>
                                             <td>
                                                 <span class="status-badge status-${c.status.toLowerCase().replace(' ', '-')}">
                                                     ${c.status}
