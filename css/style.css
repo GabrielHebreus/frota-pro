@@ -2912,4 +2912,14 @@ input[list] {
   opacity: 1;
 }
 
+.percentual-destaque {
+    font-weight: 600;
+    color: #10b981;
+    text-align: center;
+}
 
+.valor-destaque {
+    font-weight: 600;
+    color: #3b82f6;
+    text-align: right;
+}

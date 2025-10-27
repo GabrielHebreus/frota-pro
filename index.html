@@ -334,7 +334,7 @@
                                     class="modern-input">
                             </div>
                             <div class="form-group">
-                                <label for="valor">💰 Valor (R$) *</label>
+                                <label for="valor">💰 Diaria (R$) *</label>
                                 <input type="number" id="valor" step="0.01" placeholder="0,00" required
                                     class="modern-input">
                             </div>
@@ -394,6 +394,7 @@
                                     <th>Nº Carregamento</th>
                                     <th>Valor (R$)</th>
                                     <th>Valor Carregamento</th>
+                                    <th>Percentual</th>
                                     <th>Status</th>
                                     <th width="120">Ações</th>
                                 </tr>
@@ -831,46 +832,47 @@
     <script src="js/app.js"></script>
 
     <!-- Script de Correções Simplificado - VERSÃO DEFINITIVA -->
-    <script>
-        // Correção definitiva para data - FUSO HORÁRIO BRASÍLIA
-        document.addEventListener('DOMContentLoaded', function () {
-            console.log('🚀 Inicializando correções de data...');
 
-            // Função definitiva para obter data de Brasília
-            function obterDataBrasilia() {
-                const agora = new Date();
-                // Método mais confiável: usar toLocaleString com timezone
-                const dataBrasilia = new Date(agora.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
-                return dataBrasilia;
-            }
+        <script>
+            // Correção definitiva para data - FUSO HORÁRIO BRASÍLIA
+            document.addEventListener('DOMContentLoaded', function () {
+                console.log('🚀 Inicializando correções de data...');
 
-            // Função para formatar como YYYY-MM-DD
-            function formatarDataInput(data) {
-                const ano = data.getFullYear();
-                const mes = String(data.getMonth() + 1).padStart(2, '0');
-                const dia = String(data.getDate()).padStart(2, '0');
-                return `${ano}-${mes}-${dia}`;
-            }
+                // Função definitiva para obter data de Brasília
+                function obterDataBrasilia() {
+                    const agora = new Date();
+                    // Método mais confiável: usar toLocaleString com timezone
+                    const dataBrasilia = new Date(agora.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
+                    return dataBrasilia;
+                }
 
-            // Definir data atual no campo de data
-            const dataInput = document.getElementById('data');
-            if (dataInput) {
-                const dataBrasilia = obterDataBrasilia();
-                const dataFormatada = formatarDataInput(dataBrasilia);
-                dataInput.value = dataFormatada;
-                console.log('✅ Data definida (Brasília):', dataFormatada,
-                    'Data UTC:', new Date().toISOString(),
-                    'Data Local:', new Date().toLocaleString());
-            }
+                // Função para formatar como YYYY-MM-DD
+                function formatarDataInput(data) {
+                    const ano = data.getFullYear();
+                    const mes = String(data.getMonth() + 1).padStart(2, '0');
+                    const dia = String(data.getDate()).padStart(2, '0');
+                    return `${ano}-${mes}-${dia}`;
+                }
 
-            // Monitorar mudanças no formulário para debug
-            if (dataInput) {
-                dataInput.addEventListener('change', function (e) {
-                    console.log('📅 Data alterada pelo usuário:', e.target.value);
-                });
-            }
-        });
-    </script>
+                // Definir data atual no campo de data
+                const dataInput = document.getElementById('data');
+                if (dataInput) {
+                    const dataBrasilia = obterDataBrasilia();
+                    const dataFormatada = formatarDataInput(dataBrasilia);
+                    dataInput.value = dataFormatada;
+                    console.log('✅ Data definida (Brasília):', dataFormatada,
+                        'Data UTC:', new Date().toISOString(),
+                        'Data Local:', new Date().toLocaleString());
+                }
+
+                // Monitorar mudanças no formulário para debug
+                if (dataInput) {
+                    dataInput.addEventListener('change', function (e) {
+                        console.log('📅 Data alterada pelo usuário:', e.target.value);
+                    });
+                }
+            });
+        </script>
 </body>
 
 </html>

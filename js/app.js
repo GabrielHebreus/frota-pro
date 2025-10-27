@@ -154,7 +154,7 @@ class LoadControlApp {
             });
         }
 
-        // BOTÃO LIMPAR FILTROS - CORREÇÃO ADICIONADA
+        // BOTÃO LIMPAR FILTROS
         const limparFiltrosBtn = document.getElementById('limparFiltros');
         if (limparFiltrosBtn) {
             limparFiltrosBtn.addEventListener('click', () => {
@@ -162,7 +162,7 @@ class LoadControlApp {
             });
         }
 
-        // BOTÃO EXPORTAR RELATÓRIO - CORREÇÃO ADICIONADA
+        // BOTÃO EXPORTAR RELATÓRIO
         const exportRelatorioBtn = document.getElementById('exportRelatorioBtn');
         if (exportRelatorioBtn) {
             exportRelatorioBtn.addEventListener('click', () => {
@@ -200,7 +200,7 @@ class LoadControlApp {
             });
         }
 
-        // NOVO EVENTO: Quando selecionar motorista, preencher automaticamente a placa
+        // Quando selecionar motorista, preencher automaticamente a placa
         const motoristaSelect = document.getElementById('motorista');
         if (motoristaSelect) {
             motoristaSelect.addEventListener('change', (e) => {
@@ -208,14 +208,61 @@ class LoadControlApp {
             });
         }
 
-        // Definir data atual como padrão
+        // ATALHOS DE TECLADO
+        document.addEventListener('keydown', (e) => {
+            if (e.shiftKey) {
+                switch(e.key.toLowerCase()) {
+                    case 'n':
+                        e.preventDefault();
+                        this.mudarSecao('carregamentos');
+                        setTimeout(() => {
+                            const formCard = document.getElementById('carregamentoFormCard');
+                            if (formCard) {
+                                formCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            }
+                        }, 300);
+                        break;
+                    case 'f':
+                        e.preventDefault();
+                        const searchInput = document.querySelector('.search-input');
+                        if (searchInput) {
+                            searchInput.focus();
+                        }
+                        break;
+                    case 'e':
+                        e.preventDefault();
+                        this.exportManager.exportarParaExcel();
+                        this.mostrarMensagem('Relatório exportado com sucesso!', 'success');
+                        break;
+                    case 'b':
+                        e.preventDefault();
+                        this.buscarCarregamentoRapido();
+                        break;
+                }
+            }
+        });
+
+        // Definir data atual como padrão - CORREÇÃO DA DATA
         this.definirDataAtual();
     }
 
-    // NOVA FUNÇÃO: Preencher placa automaticamente baseado no motorista selecionado
+    // NOVA FUNÇÃO: Buscar carregamento rápido
+    buscarCarregamentoRapido() {
+        const numero = prompt('🔍 Digite o número do carregamento:');
+        if (numero) {
+            const resultados = this.carregamentosManager.buscarPorNumero(numero);
+            if (resultados.length > 0) {
+                this.realizarBusca(numero);
+                this.mostrarMensagem(`✅ Encontrado ${resultados.length} carregamento(s)`, 'success');
+            } else {
+                this.mostrarMensagem('❌ Nenhum carregamento encontrado com este número', 'warning');
+            }
+        }
+    }
+
+    // Preencher placa automaticamente baseado no motorista selecionado
     preencherPlacaAutomaticamente(motoristaId) {
         if (!motoristaId) {
-            // Limpar campo de veículo se nenhum motorista for selecionado
             const veiculoSelect = document.getElementById('veiculo');
             if (veiculoSelect) {
                 veiculoSelect.value = '';
@@ -223,30 +270,25 @@ class LoadControlApp {
             return;
         }
 
-        // Buscar o motorista para obter o veículo associado
         const motorista = this.motoristasManager.obterPorId(motoristaId);
         if (motorista && motorista.veiculoAssociadoId) {
             const veiculoSelect = document.getElementById('veiculo');
             if (veiculoSelect) {
                 veiculoSelect.value = motorista.veiculoAssociadoId;
-
-                // Mostrar mensagem informativa
                 const veiculo = this.veiculosManager.obterPorId(motorista.veiculoAssociadoId);
                 if (veiculo) {
-                    this.mostrarMensagem(`✅ Veículo ${veiculo.placa} preenchido automaticamente (veículo associado ao motorista)`, 'info');
+                    this.mostrarMensagem(`✅ Veículo ${veiculo.placa} preenchido automaticamente`, 'info');
                 }
             }
         } else {
-            // Se não há veículo associado, mostrar mensagem
             this.mostrarMensagem('⚠️ Este motorista não tem veículo associado. Selecione um veículo manualmente.', 'warning');
         }
     }
 
-    // NOVA FUNÇÃO: Limpar filtros dos relatórios
+    // Limpar filtros dos relatórios
     limparFiltrosRelatorios() {
         console.log('🧹 Limpando filtros dos relatórios...');
 
-        // Limpar os campos de filtro
         const filtroMotorista = document.getElementById('filtroMotorista');
         const filtroVeiculo = document.getElementById('filtroVeiculo');
         const filtroDataInicio = document.getElementById('filtroDataInicio');
@@ -257,17 +299,14 @@ class LoadControlApp {
         if (filtroDataInicio) filtroDataInicio.value = '';
         if (filtroDataFim) filtroDataFim.value = '';
 
-        // Aplicar os filtros limpos para atualizar os relatórios
         this.aplicarFiltrosRelatorios();
-
         this.mostrarMensagem('✅ Filtros limpos com sucesso!', 'success');
     }
 
-    // NOVA FUNÇÃO: Exportar relatório filtrado
+    // Exportar relatório filtrado
     exportarRelatorioFiltrado() {
         console.log('📤 Exportando relatório filtrado...');
 
-        // Obter os filtros atuais
         const motoristaId = document.getElementById('filtroMotorista')?.value;
         const veiculoId = document.getElementById('filtroVeiculo')?.value;
         const dataInicio = document.getElementById('filtroDataInicio')?.value;
@@ -275,19 +314,15 @@ class LoadControlApp {
 
         let carregamentos = this.carregamentosManager.obterTodos();
 
-        // Aplicar os mesmos filtros do relatório
         if (motoristaId) {
             carregamentos = carregamentos.filter(c => c.motoristaId === motoristaId);
         }
-
         if (veiculoId) {
             carregamentos = carregamentos.filter(c => c.veiculoId === veiculoId);
         }
-
         if (dataInicio) {
             carregamentos = carregamentos.filter(c => new Date(c.data) >= new Date(dataInicio));
         }
-
         if (dataFim) {
             carregamentos = carregamentos.filter(c => new Date(c.data) <= new Date(dataFim));
         }
@@ -297,11 +332,9 @@ class LoadControlApp {
             return;
         }
 
-        // Calcular estatísticas para o relatório
         const estatisticas = this.calcularEstatisticasFiltradas(carregamentos);
         const totais = this.calcularTotaisFiltrados(carregamentos);
 
-        // Preparar dados para exportação
         const dadosExportacao = {
             carregamentos: carregamentos,
             estatisticas: estatisticas,
@@ -314,14 +347,12 @@ class LoadControlApp {
             }
         };
 
-        // Chamar o exportManager para exportar o relatório filtrado
         this.exportManager.exportarRelatorioFiltrado(dadosExportacao);
         this.mostrarMensagem('📊 Relatório filtrado exportado com sucesso!', 'success');
     }
 
     carregarDadosIniciais() {
         console.log('📂 Carregando dados iniciais...');
-        // Forçar carregamento dos dados
         this.motoristasManager.carregarDoLocalStorage();
         this.veiculosManager.carregarDoLocalStorage();
         this.carregamentosManager.carregarDoLocalStorage();
@@ -331,24 +362,20 @@ class LoadControlApp {
     mudarSecao(secao) {
         console.log(`🔄 Mudando para seção: ${secao}`);
 
-        // Remover seção de busca se existir
         const buscaSection = document.getElementById('busca-section');
         if (buscaSection) {
             buscaSection.remove();
         }
 
-        // Limpar campo de busca
         const searchInput = document.querySelector('.search-input');
         if (searchInput) {
             searchInput.value = '';
         }
 
-        // Atualizar botões de navegação
         document.querySelectorAll('.nav-item').forEach(btn => {
             btn.classList.toggle('active', btn.dataset.section === secao);
         });
 
-        // Atualizar seções com animação
         document.querySelectorAll('.section').forEach(section => {
             if (section.id === `${secao}-section`) {
                 section.style.display = 'block';
@@ -363,7 +390,6 @@ class LoadControlApp {
             }
         });
 
-        // Atualizar título da página
         const titles = {
             'dashboard': { title: 'Dashboard', subtitle: 'Visão geral da operação logística' },
             'carregamentos': { title: 'Carregamentos', subtitle: 'Controle completo dos carregamentos da frota' },
@@ -379,7 +405,6 @@ class LoadControlApp {
         if (pageTitle) pageTitle.textContent = pageInfo.title;
         if (pageSubtitle) pageSubtitle.textContent = pageInfo.subtitle;
 
-        // Carregar dados específicos da seção
         setTimeout(() => {
             switch (secao) {
                 case 'dashboard':
@@ -388,7 +413,7 @@ class LoadControlApp {
                 case 'motoristas':
                     this.atualizarListaMotoristas();
                     this.atualizarStatsMotoristas();
-                    this.carregarVeiculosAssociadosSelect(); // NOVO: Carregar select de veículos para associação
+                    this.carregarVeiculosAssociadosSelect();
                     break;
                 case 'veiculos':
                     this.atualizarListaVeiculos();
@@ -426,7 +451,6 @@ class LoadControlApp {
                     select.appendChild(option);
                 });
 
-                // Manter o valor selecionado se possível
                 if (currentValue && motoristas.some(m => m.id === currentValue)) {
                     select.value = currentValue;
                 }
@@ -455,7 +479,6 @@ class LoadControlApp {
                     select.appendChild(option);
                 });
 
-                // Manter o valor selecionado se possível
                 if (currentValue && veiculos.some(v => v.id === currentValue)) {
                     select.value = currentValue;
                 }
@@ -463,7 +486,7 @@ class LoadControlApp {
         });
     }
 
-    // NOVA FUNÇÃO: Carregar veículos para associação no cadastro de motoristas
+    // Carregar veículos para associação no cadastro de motoristas
     carregarVeiculosAssociadosSelect() {
         const select = document.getElementById('veiculoAssociado');
         if (select) {
@@ -478,7 +501,6 @@ class LoadControlApp {
                 select.appendChild(option);
             });
 
-            // Manter o valor selecionado se possível
             if (currentValue && veiculos.some(v => v.id === currentValue)) {
                 select.value = currentValue;
             }
@@ -562,7 +584,7 @@ class LoadControlApp {
             rota: document.getElementById('rota').value,
             numeroCarregamento: document.getElementById('numeroCarregamento').value,
             valor: valor,
-            valorCarregamento: valorCarregamento, // CORREÇÃO: Campo incluído
+            valorCarregamento: valorCarregamento,
             status: document.getElementById('status').value
         };
     }
@@ -600,14 +622,32 @@ class LoadControlApp {
         }
     }
 
+    // CORREÇÃO DA DATA - Função corrigida
     definirDataAtual() {
         const dataInput = document.getElementById('data');
         if (dataInput) {
-            const hoje = new Date();
-            const offset = hoje.getTimezoneOffset();
-            const localDate = new Date(hoje.getTime() - (offset * 60 * 1000));
-            const dataLocal = localDate.toISOString().split('T')[0];
-            dataInput.value = dataLocal;
+            // Método correto para obter data atual no fuso horário de Brasília
+            const agora = new Date();
+            
+            // Ajustar para o fuso horário de Brasília (UTC-3)
+            const offsetBrasilia = -3 * 60; // UTC-3 em minutos
+            const offsetLocal = agora.getTimezoneOffset(); // Offset do local em minutos
+            const offsetDiff = offsetBrasilia - offsetLocal;
+            
+            // Aplicar a diferença do fuso horário
+            const dataBrasilia = new Date(agora.getTime() + offsetDiff * 60 * 1000);
+            
+            // Formatar como YYYY-MM-DD
+            const ano = dataBrasilia.getFullYear();
+            const mes = String(dataBrasilia.getMonth() + 1).padStart(2, '0');
+            const dia = String(dataBrasilia.getDate()).padStart(2, '0');
+            const dataFormatada = `${ano}-${mes}-${dia}`;
+            
+            dataInput.value = dataFormatada;
+            
+            console.log('📅 Data definida (Brasília):', dataFormatada, 
+                       'Data UTC:', agora.toISOString(),
+                       'Data Local:', agora.toLocaleDateString('pt-BR'));
         }
     }
 
@@ -620,7 +660,7 @@ class LoadControlApp {
         if (carregamentos.length === 0) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="9" class="empty-state">
+                    <td colspan="10" class="empty-state">
                         <div class="empty-icon">📦</div>
                         <h3>Nenhum carregamento registrado</h3>
                         <p>Adicione seu primeiro carregamento usando o formulário acima.</p>
@@ -633,7 +673,13 @@ class LoadControlApp {
             return;
         }
 
-        tbody.innerHTML = carregamentos.map(carregamento => `
+        tbody.innerHTML = carregamentos.map(carregamento => {
+            // CORREÇÃO: Cálculo do percentual - Valor (R$) ÷ Valor do Carregamento
+            const percentual = carregamento.valorCarregamento > 0 ? 
+                ((carregamento.valor / carregamento.valorCarregamento) * 100).toFixed(1) + '%' : 
+                '0%';
+
+            return `
             <tr>
                 <td>
                     <div class="driver-info-small">
@@ -655,6 +701,7 @@ class LoadControlApp {
                 </td>
                 <td class="valor-destaque">R$ ${this.formatarMoeda(carregamento.valor)}</td>
                 <td class="valor-destaque">R$ ${this.formatarMoeda(carregamento.valorCarregamento)}</td>
+                <td class="percentual-destaque">${percentual}</td>
                 <td>
                     <span class="status-badge status-${carregamento.status ? carregamento.status.toLowerCase().replace(' ', '-') : 'pendente'}">
                         ${carregamento.status || 'Pendente'}
@@ -669,9 +716,9 @@ class LoadControlApp {
                     </button>
                 </td>
             </tr>
-        `).join('');
+            `;
+        }).join('');
 
-        // Atualizar total de registros
         const totalRegistros = document.getElementById('totalRegistros');
         if (totalRegistros) {
             totalRegistros.textContent = carregamentos.length;
@@ -689,30 +736,24 @@ class LoadControlApp {
     editarCarregamento(id) {
         const carregamento = this.carregamentosManager.obterPorId(id);
         if (carregamento) {
-            // Preencher formulário com dados existentes
             document.getElementById('motorista').value = carregamento.motoristaId;
             document.getElementById('veiculo').value = carregamento.veiculoId;
             document.getElementById('data').value = carregamento.data;
             document.getElementById('rota').value = carregamento.rota;
             document.getElementById('numeroCarregamento').value = carregamento.numeroCarregamento;
             document.getElementById('valor').value = carregamento.valor;
-            document.getElementById('valorCarregamento').value = carregamento.valorCarregamento; // CORREÇÃO: Campo incluído
+            document.getElementById('valorCarregamento').value = carregamento.valorCarregamento;
             document.getElementById('status').value = carregamento.status;
 
-            // Remover o item original
             this.carregamentosManager.remover(id);
-
             this.mostrarMensagem('📝 Carregamento carregado para edição!', 'info');
+            
             const rotaInput = document.getElementById('rota');
             if (rotaInput) rotaInput.focus();
 
-            // Scroll para o formulário
             const formCard = document.getElementById('carregamentoFormCard');
             if (formCard) {
-                formCard.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'start'
-                });
+                formCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
         }
     }
@@ -754,7 +795,6 @@ class LoadControlApp {
         if (motorista) {
             this.motoristaEditando = id;
 
-            // Preencher formulário com dados existentes
             document.getElementById('nomeMotorista').value = motorista.nome;
             document.getElementById('cpf').value = this.motoristasManager.formatarCPF(motorista.cpf);
             document.getElementById('telefone').value = motorista.telefone ? this.motoristasManager.formatarTelefone(motorista.telefone) : '';
@@ -763,7 +803,6 @@ class LoadControlApp {
             document.getElementById('veiculoAssociado').value = motorista.veiculoAssociadoId || '';
             document.getElementById('vtDiario').value = motorista.vtDiario;
 
-            // Mudar texto do botão
             const submitBtn = document.querySelector('#motoristaForm button[type="submit"]');
             if (submitBtn) {
                 submitBtn.innerHTML = '<span class="btn-icon">💾</span> Salvar Edição';
@@ -796,17 +835,14 @@ class LoadControlApp {
     excluirMotorista(id) {
         const motorista = this.motoristasManager.obterPorId(id);
         if (motorista && confirm(`⚠️ Tem certeza que deseja EXCLUIR PERMANENTEMENTE o motorista ${motorista.nome}? Esta ação não pode ser desfeita.`)) {
-            // Verificar se o motorista tem carregamentos
             const carregamentosMotorista = this.carregamentosManager.obterPorMotorista(id);
             if (carregamentosMotorista.length > 0) {
                 this.mostrarMensagem('❌ Não é possível excluir motorista com carregamentos registrados!', 'error');
                 return;
             }
 
-            // Remover motorista da lista
             this.motoristasManager.motoristas = this.motoristasManager.motoristas.filter(m => m.id !== id);
             this.motoristasManager.salvarNoLocalStorage();
-
             this.mostrarMensagem('✅ Motorista excluído com sucesso!', 'success');
             this.atualizarUICompleta();
         }
@@ -986,7 +1022,6 @@ class LoadControlApp {
         if (veiculo) {
             this.veiculoEditando = id;
 
-            // Preencher formulário com dados existentes
             document.getElementById('placa').value = veiculo.placa;
             document.getElementById('modelo').value = veiculo.modelo;
             document.getElementById('marca').value = veiculo.marca;
@@ -994,7 +1029,6 @@ class LoadControlApp {
             document.getElementById('tipo').value = veiculo.tipo;
             document.getElementById('statusVeiculo').value = veiculo.status;
 
-            // Mudar texto do botão
             const submitBtn = document.querySelector('#veiculoForm button[type="submit"]');
             if (submitBtn) {
                 submitBtn.innerHTML = '<span class="btn-icon">💾</span> Salvar Edição';
@@ -1027,7 +1061,6 @@ class LoadControlApp {
     excluirVeiculo(id) {
         const veiculo = this.veiculosManager.obterPorId(id);
         if (veiculo && confirm(`⚠️ Tem certeza que deseja EXCLUIR PERMANENTEMENTE o veículo ${veiculo.placa}? Esta ação não pode ser desfeita.`)) {
-            // Verificar se o veículo tem carregamentos
             const carregamentosVeiculo = this.carregamentosManager.obterPorVeiculo(id);
             if (carregamentosVeiculo.length > 0) {
                 this.mostrarMensagem('❌ Não é possível excluir veículo com carregamentos registrados!', 'error');
@@ -1075,7 +1108,6 @@ class LoadControlApp {
             return false;
         }
 
-        // Validar formato da placa (antigo ou Mercosul)
         const placaRegex = /^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/;
         if (!placaRegex.test(dados.placa.replace('-', ''))) {
             this.mostrarMensagem('⚠️ Formato de placa inválido!', 'warning');
@@ -1173,26 +1205,22 @@ class LoadControlApp {
         const totalVeiculos = this.veiculosManager.obterTodos().length;
         const veiculosDisponiveis = this.veiculosManager.obterDisponiveis().length;
 
-        // Atualizar stats do dashboard
         this.atualizarElementoTexto('dashboardTotalMensal', `R$ ${this.formatarMoeda(totais.totalMensal)}`);
         this.atualizarElementoTexto('dashboardCarregamentos', totais.totalRegistros);
         this.atualizarElementoTexto('dashboardMotoristas', motoristasAtivos);
         this.atualizarElementoTexto('dashboardDias', totais.diasTrabalhados);
         this.atualizarElementoTexto('dashboardVeiculos', totalVeiculos);
 
-        // Atualizar badges da sidebar
         this.atualizarElementoTexto('carregamentosCount', totais.totalRegistros);
         this.atualizarElementoTexto('motoristasCount', this.motoristasManager.obterTodos().length);
         this.atualizarElementoTexto('veiculosCount', totalVeiculos);
 
-        // Atualizar componentes do dashboard
         this.atualizarAtividadeRecente();
         this.atualizarMotoristasMaioresValores();
         this.atualizarGraficoComparacao();
         this.atualizarMetricasRapidas();
     }
 
-    // NOVA FUNÇÃO: Métricas rápidas
     atualizarMetricasRapidas() {
         const hoje = new Date().toISOString().split('T')[0];
         const carregamentosHoje = this.carregamentosManager.obterTodos()
@@ -1202,7 +1230,6 @@ class LoadControlApp {
         const pendentes = this.carregamentosManager.obterTodos()
             .filter(c => c.status === 'Pendente').length;
 
-        // Atualizar métricas rápidas se existirem
         const metricsContainer = document.getElementById('metricasRapidas');
         if (metricsContainer) {
             metricsContainer.innerHTML = `
@@ -1308,7 +1335,6 @@ class LoadControlApp {
         const ctx = document.getElementById('comparisonChart');
         if (!ctx) return;
 
-        // Destruir gráfico anterior se existir
         if (this.comparisonChart) {
             this.comparisonChart.destroy();
         }
@@ -1410,19 +1436,15 @@ class LoadControlApp {
 
         let carregamentos = this.carregamentosManager.obterTodos();
 
-        // Aplicar filtros
         if (motoristaId) {
             carregamentos = carregamentos.filter(c => c.motoristaId === motoristaId);
         }
-
         if (veiculoId) {
             carregamentos = carregamentos.filter(c => c.veiculoId === veiculoId);
         }
-
         if (dataInicio) {
             carregamentos = carregamentos.filter(c => new Date(c.data) >= new Date(dataInicio));
         }
-
         if (dataFim) {
             carregamentos = carregamentos.filter(c => new Date(c.data) <= new Date(dataFim));
         }
@@ -1436,7 +1458,6 @@ class LoadControlApp {
         const tbody = document.getElementById('relatorioBody');
         if (!tbody) return;
 
-        // Atualizar métricas
         this.atualizarElementoTexto('relatorioFaturamento', `R$ ${this.formatarMoeda(totais.totalMensal)}`);
         this.atualizarElementoTexto('relatorioTicketMedio', `R$ ${this.formatarMoeda(totais.ticketMedio)}`);
         this.atualizarElementoTexto('relatorioDiasTrabalhados', totais.diasTrabalhados);
@@ -1451,7 +1472,6 @@ class LoadControlApp {
                     </td>
                 </tr>
             `;
-
             this.limparGraficoRelatorio();
             return;
         }
@@ -1511,7 +1531,6 @@ class LoadControlApp {
 
         const totalMensal = carregamentosFiltrados.reduce((sum, c) => sum + c.valor, 0);
         const ticketMedio = totalMensal / carregamentosFiltrados.length;
-
         const diasUnicos = new Set(carregamentosFiltrados.map(c => c.data)).size;
 
         let vtTotal = 0;
@@ -1535,7 +1554,6 @@ class LoadControlApp {
         const ctx = document.getElementById('relatorioChart');
         if (!ctx) return;
 
-        // Destruir gráfico anterior se existir
         if (this.relatorioChart) {
             this.relatorioChart.destroy();
         }
@@ -1628,7 +1646,6 @@ class LoadControlApp {
     // BUSCA GLOBAL
     realizarBusca(termo) {
         if (!termo.trim()) {
-            // Se busca vazia, restaurar visualização normal baseada na seção atual
             const secaoAtiva = document.querySelector('.nav-item.active')?.dataset.section || 'dashboard';
             this.mudarSecao(secaoAtiva);
             return;
@@ -1636,7 +1653,6 @@ class LoadControlApp {
 
         termo = termo.toLowerCase();
 
-        // Buscar em todas as seções
         const resultados = {
             carregamentos: this.carregamentosManager.obterTodos().filter(c =>
                 c.motoristaNome.toLowerCase().includes(termo) ||
@@ -1644,7 +1660,7 @@ class LoadControlApp {
                 c.rota.toLowerCase().includes(termo) ||
                 c.numeroCarregamento.toLowerCase().includes(termo) ||
                 c.valor.toString().includes(termo) ||
-                c.valorCarregamento.toString().includes(termo) || // CORREÇÃO: Campo incluído
+                c.valorCarregamento.toString().includes(termo) ||
                 c.status.toLowerCase().includes(termo)
             ),
             motoristas: this.motoristasManager.obterTodos().filter(m =>
@@ -1664,12 +1680,10 @@ class LoadControlApp {
             )
         };
 
-        // Mostrar resultados
         this.mostrarResultadosBusca(resultados, termo);
     }
 
     mostrarResultadosBusca(resultados, termo) {
-        // Criar ou atualizar seção de resultados
         let resultadosSection = document.getElementById('busca-section');
 
         if (!resultadosSection) {
@@ -1696,12 +1710,10 @@ class LoadControlApp {
 
         let html = '';
 
-        // Armazenar seção anterior para voltar
         if (!this.secaoAnteriorBusca) {
             this.secaoAnteriorBusca = document.querySelector('.nav-item.active')?.dataset.section || 'dashboard';
         }
 
-        // Ocultar outras seções
         document.querySelectorAll('.section').forEach(section => {
             if (section.id !== 'busca-section') {
                 section.classList.remove('active');
@@ -1709,11 +1721,9 @@ class LoadControlApp {
             }
         });
 
-        // Mostrar seção de busca
         resultadosSection.style.display = 'block';
         resultadosSection.classList.add('active');
 
-        // Contar resultados totais
         const totalResultados = resultados.carregamentos.length + resultados.motoristas.length + resultados.veiculos.length;
 
         if (totalResultados === 0) {
@@ -1743,7 +1753,6 @@ class LoadControlApp {
                 </div>
             `;
 
-            // Resultados de Carregamentos
             if (resultados.carregamentos.length > 0) {
                 html += `
                     <div class="search-category">
@@ -1759,12 +1768,19 @@ class LoadControlApp {
                                         <th>Nº Carga</th>
                                         <th>Valor (R$)</th>
                                         <th>Valor Carregamento</th>
+                                        <th>Percentual</th>
                                         <th>Status</th>
                                         <th>Ações</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    ${resultados.carregamentos.map(c => `
+                                    ${resultados.carregamentos.map(c => {
+                                        // CORREÇÃO: Cálculo do percentual - Valor (R$) ÷ Valor do Carregamento
+                                        const percentual = c.valorCarregamento > 0 ? 
+                                            ((c.valor / c.valorCarregamento) * 100).toFixed(1) + '%' : 
+                                            '0%';
+                                        
+                                        return `
                                         <tr>
                                             <td>
                                                 <div class="driver-info-small">
@@ -1786,6 +1802,7 @@ class LoadControlApp {
                                             </td>
                                             <td class="valor-destaque">R$ ${this.formatarMoeda(c.valor)}</td>
                                             <td class="valor-destaque">R$ ${this.formatarMoeda(c.valorCarregamento)}</td>
+                                            <td class="percentual-destaque">${percentual}</td>
                                             <td>
                                                 <span class="status-badge status-${c.status.toLowerCase().replace(' ', '-')}">
                                                     ${c.status}
@@ -1800,7 +1817,7 @@ class LoadControlApp {
                                                 </button>
                                             </td>
                                         </tr>
-                                    `).join('')}
+                                    `}).join('')}
                                 </tbody>
                             </table>
                         </div>
@@ -1808,7 +1825,6 @@ class LoadControlApp {
                 `;
             }
 
-            // Resultados de Motoristas
             if (resultados.motoristas.length > 0) {
                 html += `
                     <div class="search-category">
@@ -1872,7 +1888,6 @@ class LoadControlApp {
                 `;
             }
 
-            // Resultados de Veículos
             if (resultados.veiculos.length > 0) {
                 html += `
                     <div class="search-category">
@@ -1936,7 +1951,6 @@ class LoadControlApp {
         return texto.replace(regex, '<mark class="search-highlight">$1</mark>');
     }
 
-    // Voltar para a seção anterior após busca
     voltarDaBusca() {
         const buscaSection = document.getElementById('busca-section');
         if (buscaSection) {
@@ -1949,7 +1963,6 @@ class LoadControlApp {
             this.mudarSecao('dashboard');
         }
 
-        // Limpar campo de busca
         const searchInput = document.querySelector('.search-input');
         if (searchInput) {
             searchInput.value = '';
@@ -1962,34 +1975,28 @@ class LoadControlApp {
     atualizarUICompleta() {
         console.log('🔄 Atualizando interface completa...');
 
-        // Atualizar todas as seções
         this.atualizarTabelaCarregamentos();
         this.atualizarListaMotoristas();
         this.atualizarListaVeiculos();
 
-        // Atualizar estatísticas
         this.atualizarStatsMotoristas();
         this.atualizarStatsVeiculos();
         this.atualizarStatsCarregamentos();
 
-        // Atualizar selects
         this.carregarMotoristasSelect();
         this.carregarVeiculosSelect();
-        this.carregarVeiculosAssociadosSelect(); // NOVO: Carregar select de veículos para associação
+        this.carregarVeiculosAssociadosSelect();
         this.carregarFiltroMotoristas();
         this.carregarFiltroVeiculos();
 
-        // Atualizar dashboard se estiver ativo
         if (document.querySelector('#dashboard-section.active')) {
             this.atualizarDashboard();
         }
 
-        // Atualizar relatórios se estiver ativo
         if (document.querySelector('#relatorios-section.active')) {
             this.carregarRelatorios();
         }
 
-        // Atualizar contadores da sidebar
         this.atualizarContadoresSidebar();
     }
 
@@ -2080,7 +2087,6 @@ class LoadControlApp {
         return numbers;
     }
 
-    // NOVA FUNÇÃO: Atualizar elemento de forma segura
     atualizarElementoTexto(id, texto) {
         const elemento = document.getElementById(id);
         if (elemento) {
