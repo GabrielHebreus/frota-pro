@@ -1198,14 +1198,22 @@ class LoadControlApp {
         `).join('');
     }
 
-    // DASHBOARD
+    // DASHBOARD - Função atualizada para incluir o novo card
     atualizarDashboard() {
         const totais = this.carregamentosManager.calcularTotais();
         const motoristasAtivos = this.motoristasManager.obterAtivos().length;
         const totalVeiculos = this.veiculosManager.obterTodos().length;
         const veiculosDisponiveis = this.veiculosManager.obterDisponiveis().length;
 
-        this.atualizarElementoTexto('dashboardTotalMensal', `R$ ${this.formatarMoeda(totais.totalMensal)}`);
+        // Calcular valor total das diárias (soma da coluna "Valor (R$)")
+        const valorTotalDiarias = this.carregamentosManager.obterTodos()
+            .reduce((sum, c) => sum + c.valor, 0);
+
+        // Calcular valor total dos carregamentos (soma da coluna "Valor Carregamento")
+        const valorTotalCarregamentos = this.carregamentosManager.obterTodos()
+            .reduce((sum, c) => sum + c.valorCarregamento, 0);
+
+        this.atualizarElementoTexto('dashboardTotalMensal', `R$ ${this.formatarMoeda(valorTotalDiarias)}`);
         this.atualizarElementoTexto('dashboardCarregamentos', totais.totalRegistros);
         this.atualizarElementoTexto('dashboardMotoristas', motoristasAtivos);
         this.atualizarElementoTexto('dashboardDias', totais.diasTrabalhados);
@@ -1219,9 +1227,13 @@ class LoadControlApp {
         this.atualizarMotoristasMaioresValores();
         this.atualizarGraficoComparacao();
         this.atualizarMetricasRapidas();
+
+        // Atualizar o card de métricas rápidas com o valor total dos carregamentos
+        this.atualizarMetricasRapidasCompleto(valorTotalDiarias, valorTotalCarregamentos);
     }
 
-    atualizarMetricasRapidas() {
+    // NOVA FUNÇÃO: Atualizar métricas rápidas com valor total dos carregamentos
+    atualizarMetricasRapidasCompleto(valorTotalDiarias, valorTotalCarregamentos) {
         const hoje = new Date().toISOString().split('T')[0];
         const carregamentosHoje = this.carregamentosManager.obterTodos()
             .filter(c => c.data === hoje);
@@ -1252,6 +1264,13 @@ class LoadControlApp {
                     <div class="metric-info">
                         <div class="metric-value">${pendentes}</div>
                         <div class="metric-label">Pendentes</div>
+                    </div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-icon">📊</div>
+                    <div class="metric-info">
+                        <div class="metric-value">R$ ${this.formatarMoeda(valorTotalCarregamentos)}</div>
+                        <div class="metric-label">Valor Total Carregamentos</div>
                     </div>
                 </div>
             `;
@@ -1452,20 +1471,32 @@ class LoadControlApp {
         this.atualizarRelatorios(carregamentos);
     }
 
+    // RELATÓRIOS - Função atualizada para incluir valor total dos carregamentos
     atualizarRelatorios(carregamentosFiltrados) {
         const estatisticas = this.calcularEstatisticasFiltradas(carregamentosFiltrados);
         const totais = this.calcularTotaisFiltrados(carregamentosFiltrados);
         const tbody = document.getElementById('relatorioBody');
         if (!tbody) return;
 
-        this.atualizarElementoTexto('relatorioFaturamento', `R$ ${this.formatarMoeda(totais.totalMensal)}`);
+        // Calcular valor total das diárias filtradas
+        const valorTotalDiarias = carregamentosFiltrados
+            .reduce((sum, c) => sum + c.valor, 0);
+
+        // Calcular valor total dos carregamentos filtrados
+        const valorTotalCarregamentos = carregamentosFiltrados
+            .reduce((sum, c) => sum + c.valorCarregamento, 0);
+
+        this.atualizarElementoTexto('relatorioFaturamento', `R$ ${this.formatarMoeda(valorTotalDiarias)}`);
         this.atualizarElementoTexto('relatorioTicketMedio', `R$ ${this.formatarMoeda(totais.ticketMedio)}`);
         this.atualizarElementoTexto('relatorioDiasTrabalhados', totais.diasTrabalhados);
+
+        // Atualizar métricas de relatórios com o novo valor
+        this.atualizarMetricasRelatoriosCompleto(valorTotalDiarias, totais.ticketMedio, totais.diasTrabalhados, valorTotalCarregamentos);
 
         if (estatisticas.length === 0) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="7" class="empty-state">
+                    <td colspan="8" class="empty-state">
                         <div class="empty-icon">📊</div>
                         <h3>Nenhum dado para exibir</h3>
                         <p>Adicione carregamentos ou ajuste os filtros.</p>
@@ -1489,6 +1520,43 @@ class LoadControlApp {
         `).join('');
 
         this.atualizarGraficoRelatorio(estatisticas);
+    }
+
+    // NOVA FUNÇÃO: Atualizar métricas de relatórios com valor total dos carregamentos
+    atualizarMetricasRelatoriosCompleto(faturamento, ticketMedio, diasTrabalhados, valorTotalCarregamentos) {
+        const metricsContainer = document.getElementById('metricasRelatorios');
+        if (metricsContainer) {
+            metricsContainer.innerHTML = `
+                <div class="metric-card">
+                    <div class="metric-icon">💰</div>
+                    <div class="metric-info">
+                        <div class="metric-value">R$ ${this.formatarMoeda(faturamento)}</div>
+                        <div class="metric-label">Faturamento Total</div>
+                    </div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-icon">📊</div>
+                    <div class="metric-info">
+                        <div class="metric-value">R$ ${this.formatarMoeda(ticketMedio)}</div>
+                        <div class="metric-label">Ticket Médio</div>
+                    </div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-icon">📅</div>
+                    <div class="metric-info">
+                        <div class="metric-value">${diasTrabalhados}</div>
+                        <div class="metric-label">Dias Trabalhados</div>
+                    </div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-icon">📦</div>
+                    <div class="metric-info">
+                        <div class="metric-value">R$ ${this.formatarMoeda(valorTotalCarregamentos)}</div>
+                        <div class="metric-label">Valor Total Carregamentos</div>
+                    </div>
+                </div>
+            `;
+        }
     }
 
     calcularEstatisticasFiltradas(carregamentosFiltrados) {
@@ -2000,6 +2068,7 @@ class LoadControlApp {
         this.atualizarContadoresSidebar();
     }
 
+    // CARREGAMENTOS - Função atualizada para calcular ambos os totais
     atualizarStatsCarregamentos() {
         const totais = this.carregamentosManager.calcularTotais();
         const hoje = new Date().toISOString().split('T')[0];
@@ -2011,10 +2080,21 @@ class LoadControlApp {
         const carregamentosSemana = this.carregamentosManager.obterTodos()
             .filter(c => new Date(c.data) >= umaSemanaAtras).length;
 
+        // Calcular valor total das diárias (soma da coluna "Valor (R$)")
+        const valorTotalDiarias = this.carregamentosManager.obterTodos()
+            .reduce((sum, c) => sum + c.valor, 0);
+
+        // Calcular valor total dos carregamentos (soma da coluna "Valor Carregamento")
+        const valorTotalCarregamentos = this.carregamentosManager.obterTodos()
+            .reduce((sum, c) => sum + c.valorCarregamento, 0);
+
         this.atualizarElementoTexto('totalCarregamentos', totais.totalRegistros);
         this.atualizarElementoTexto('carregamentosHoje', carregamentosHoje);
         this.atualizarElementoTexto('carregamentosSemana', carregamentosSemana);
-        this.atualizarElementoTexto('valorTotal', `R$ ${this.formatarMoeda(totais.totalMensal)}`);
+        
+        // CORREÇÃO: Usar o valor calculado das diárias
+        this.atualizarElementoTexto('valorTotal', `R$ ${this.formatarMoeda(valorTotalDiarias)}`);
+        this.atualizarElementoTexto('valorTotalCarregamentos', `R$ ${this.formatarMoeda(valorTotalCarregamentos)}`);
     }
 
     atualizarStatsMotoristas() {

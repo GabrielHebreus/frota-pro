@@ -51,7 +51,7 @@ class CarregamentosManager {
             rota: carregamento.rota,
             numeroCarregamento: carregamento.numeroCarregamento,
             valor: parseFloat(carregamento.valor),
-            valorCarregamento: parseFloat(carregamento.valorCarregamento), // CORREÇÃO: Campo adicionado
+            valorCarregamento: parseFloat(carregamento.valorCarregamento),
             status: carregamento.status || 'Pendente',
             timestamp: new Date().toISOString()
         };
@@ -75,7 +75,7 @@ class CarregamentosManager {
                 ...this.carregamentos[index],
                 ...dadosAtualizados,
                 valor: parseFloat(dadosAtualizados.valor),
-                valorCarregamento: parseFloat(dadosAtualizados.valorCarregamento) // CORREÇÃO: Campo adicionado
+                valorCarregamento: parseFloat(dadosAtualizados.valorCarregamento)
             };
             this.salvarNoLocalStorage();
             return this.carregamentos[index];
@@ -89,11 +89,12 @@ class CarregamentosManager {
         this.salvarNoLocalStorage();
     }
 
-    // Calcular totais
+    // Calcular totais - função atualizada para incluir valor total dos carregamentos
     calcularTotais() {
         if (this.carregamentos.length === 0) {
             return {
                 totalMensal: 0,
+                valorTotalCarregamentos: 0,
                 ticketMedio: 0,
                 diasTrabalhados: 0,
                 vtTotal: 0,
@@ -102,6 +103,7 @@ class CarregamentosManager {
         }
 
         const totalMensal = this.carregamentos.reduce((sum, c) => sum + c.valor, 0);
+        const valorTotalCarregamentos = this.carregamentos.reduce((sum, c) => sum + c.valorCarregamento, 0);
         const ticketMedio = totalMensal / this.carregamentos.length;
         
         // Contar dias únicos trabalhados
@@ -119,6 +121,7 @@ class CarregamentosManager {
 
         return {
             totalMensal,
+            valorTotalCarregamentos,
             ticketMedio,
             diasTrabalhados: diasUnicos,
             vtTotal,
@@ -203,6 +206,35 @@ class CarregamentosManager {
         };
     }
 
+    // NOVA FUNÇÃO: Obter estatísticas do dia incluindo valor total dos carregamentos
+    obterEstatisticasHojeCompleto() {
+        const hoje = new Date().toISOString().split('T')[0];
+        const carregamentosHoje = this.carregamentos.filter(c => c.data === hoje);
+        
+        const valorTotalDiarias = carregamentosHoje.reduce((sum, c) => sum + c.valor, 0);
+        const valorTotalCarregamentos = carregamentosHoje.reduce((sum, c) => sum + c.valorCarregamento, 0);
+        
+        return {
+            total: carregamentosHoje.length,
+            valorTotalDiarias: valorTotalDiarias,
+            valorTotalCarregamentos: valorTotalCarregamentos,
+            pendentes: carregamentosHoje.filter(c => c.status === 'Pendente').length
+        };
+    }
+
+    // NOVA FUNÇÃO: Obter estatísticas completas incluindo valor total dos carregamentos
+    obterEstatisticasCompletas() {
+        const totais = this.calcularTotais();
+        const estatisticasMotoristas = this.obterEstatisticasMotoristas();
+        
+        return {
+            ...totais,
+            estatisticasMotoristas,
+            valorMedioCarregamento: totais.totalRegistros > 0 ? 
+                totais.valorTotalCarregamentos / totais.totalRegistros : 0
+        };
+    }
+
     // NOVO: Sugerir próximo número de carregamento
     sugerirProximoNumero() {
         const hoje = new Date().toISOString().split('T')[0];
@@ -220,6 +252,16 @@ class CarregamentosManager {
         return Object.keys(rotasCount)
             .sort((a, b) => rotasCount[b] - rotasCount[a])
             .slice(0, 5);
+    }
+
+    // NOVA FUNÇÃO: Calcular valor total das diárias
+    calcularValorTotalDiarias() {
+        return this.carregamentos.reduce((sum, c) => sum + c.valor, 0);
+    }
+
+    // NOVA FUNÇÃO: Calcular valor total dos carregamentos
+    calcularValorTotalCarregamentos() {
+        return this.carregamentos.reduce((sum, c) => sum + c.valorCarregamento, 0);
     }
 }
 
